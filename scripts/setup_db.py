@@ -1,5 +1,11 @@
 import csv
 import sqlite3
+import sys
+import os
+
+# Add the root directory to sys.path to allow importing config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import DB_PATH
 
 
 def setup_database() -> None:
@@ -13,8 +19,7 @@ def setup_database() -> None:
         sqlite3.Error: If there's an issue connecting or writing to the database.
         FileNotFoundError: If the TSV file cannot be found.
     """
-    db_filename = "data/sc_markers.db"
-    conn = sqlite3.connect(db_filename)
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("""

@@ -1,7 +1,7 @@
 import sqlite3
 from langchain_core.tools import tool
 
-DB_FILENAME = "data/sc_markers.db"
+from config import DB_PATH
 
 
 def get_connection() -> sqlite3.Connection:
@@ -11,7 +11,7 @@ def get_connection() -> sqlite3.Connection:
     Returns:
         sqlite3.Connection: A connection object to the database.
     """
-    return sqlite3.connect(DB_FILENAME)
+    return sqlite3.connect(DB_PATH)
 
 
 @tool

@@ -2,15 +2,14 @@ from langgraph.graph.state import CompiledStateGraph
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import create_agent
 
+from config import LLM_MODEL
 from tools import get_all_cell_types, get_markers_by_cell_type, get_cell_types_by_marker
 
 
 def create_ai_agent() -> CompiledStateGraph:
     # Initialize the LLM
-    # We use gemini-2.5-flash which is generally available and cost-effective.
-    # Note: If you specifically have access to "gemini-2.5-flash-lite", update the model name here.
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model=LLM_MODEL,
         temperature=0,
     )
 
