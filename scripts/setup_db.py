@@ -3,7 +3,7 @@ import sqlite3
 
 def setup_database() -> None:
     # 1. Connect to SQLite database (this creates the file if it doesn't exist)
-    db_filename = "cell_data.db"
+    db_filename = "data/sc_markers.db"
     conn = sqlite3.connect(db_filename)
 
     # Create a cursor object to execute SQL commands

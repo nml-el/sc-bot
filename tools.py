@@ -1,7 +1,7 @@
 import sqlite3
 from langchain_core.tools import tool
 
-DB_FILENAME = "cell_data.db"
+DB_FILENAME = "data/sc_markers.db"
 
 
 def get_connection() -> sqlite3.Connection:

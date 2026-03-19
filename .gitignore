@@ -14,3 +14,5 @@ wheels/
 # Database files
 *.db
 *.sqlite
+data/raw/*
+!data/raw/.gitkeep
