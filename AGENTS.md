@@ -35,10 +35,31 @@ We strictly enforce coding standards using `ruff`.
 - **Line Length Limit:** We use a **120-character** line limit instead of the traditional 80 characters.
   *(Note: This should be reflected in the `pyproject.toml` configuration under `[tool.ruff]` with `line-length = 120`)*.
 - **Type Hints:** **ALWAYS** use complete type hints in all function definitions for both arguments and return types.
+- **Docstrings:** All functions must include descriptive docstrings detailing what the function does, an `Args` section, a `Returns` section, and an `Errors` section if applicable.
+- **Agent Tools:** When writing tools for the agent, the docstring must also include an `Example` section demonstrating `Input` and `Output`.
 
 **Example of expected function style:**
 ```python
 def format_greeting(name: str, greeting_prefix: str = "Hello", repeat_count: int = 1) -> list[str]:
-    """Returns a list of formatted greeting strings."""
+    """
+    Returns a list of formatted greeting strings.
+    
+    Args:
+        name (str): The name of the person to greet.
+        greeting_prefix (str, optional): The prefix of the greeting. Defaults to "Hello".
+        repeat_count (int, optional): The number of times to repeat the greeting. Defaults to 1.
+        
+    Returns:
+        list[str]: A list containing the formatted greeting strings.
+        
+    Errors:
+        ValueError: If repeat_count is less than 0.
+        
+    Example:
+        Input: format_greeting("Alice", "Hi", 2)
+        Output: ["Hi, Alice!", "Hi, Alice!"]
+    """
+    if repeat_count < 0:
+        raise ValueError("repeat_count must be non-negative")
     return [f"{greeting_prefix}, {name}!"] * repeat_count
 ```
