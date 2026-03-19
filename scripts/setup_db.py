@@ -1,15 +1,22 @@
+import csv
 import sqlite3
 
 
 def setup_database() -> None:
-    # 1. Connect to SQLite database (this creates the file if it doesn't exist)
+    """
+    Sets up the SQLite database and populates it with data from PanglaoDB TSV file.
+
+    Returns:
+        None
+
+    Errors:
+        sqlite3.Error: If there's an issue connecting or writing to the database.
+        FileNotFoundError: If the TSV file cannot be found.
+    """
     db_filename = "data/sc_markers.db"
     conn = sqlite3.connect(db_filename)
-
-    # Create a cursor object to execute SQL commands
     cursor = conn.cursor()
 
-    # 2. Create the table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cell_markers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,41 +28,43 @@ def setup_database() -> None:
         )
     """)
 
-    # Clear existing data if script is run multiple times
+    # Clear existing data so it's idempotent
     cursor.execute("DELETE FROM cell_markers")
 
-    # 3. Define the dummy data
-    data_to_insert = [
-        ("T cell", "Immune Cell", "CD3E", "Human", "PanglaoDB"),
-        ("B cell", "Immune Cell", "CD19", "Human", "PanglaoDB"),
-        ("Neuron", "Brain", "SYP", "Mouse", "CellMarker"),
-        ("Hepatocyte", "Liver", "ALB", "Human", "Human Cell Atlas"),
-        ("Cardiomyocyte", "Heart", "TNNT2", "Mouse", "PanglaoDB"),
-    ]
+    tsv_filename = "data/raw/PanglaoDB_markers_27_Mar_2020.tsv"
+    source_name = "PanglaoDB"
+    data_to_insert = []
 
-    # 4. Insert the data into the table
-    cursor.executemany(
-        """
-        INSERT INTO cell_markers (cell_type, tissue, marker_gene, species, source)
-        VALUES (?, ?, ?, ?, ?)
-    """,
-        data_to_insert,
-    )
+    try:
+        with open(tsv_filename, encoding="utf-8") as file:
+            tsv_reader = csv.DictReader(file, delimiter="\t")
 
-    # Save (commit) the changes
-    conn.commit()
-    print(f"Successfully created '{db_filename}' and inserted {len(data_to_insert)} rows.")
+            for row in tsv_reader:
+                cell_type = row.get("cell type", "Unknown")
+                tissue = row.get("organ", "Unknown")
+                marker_gene = row.get("official gene symbol", "Unknown")
+                species = row.get("species", "Unknown")
 
-    # 5. Verify by querying the data back
-    print("\n--- Reading Data from SQLite ---")
-    cursor.execute("SELECT * FROM cell_markers")
-    rows = cursor.fetchall()
+                data_to_insert.append((cell_type, tissue, marker_gene, species, source_name))
 
-    for row in rows:
-        print(row)
+        cursor.executemany(
+            """
+            INSERT INTO cell_markers (cell_type, tissue, marker_gene, species, source)
+            VALUES (?, ?, ?, ?, ?)
+        """,
+            data_to_insert,
+        )
 
-    # 6. Close the connection
-    conn.close()
+        conn.commit()
+        print(f"Successfully inserted {len(data_to_insert)} records from '{tsv_filename}' into the database.")
+
+    except FileNotFoundError:
+        print(f"Error: Could not find the file '{tsv_filename}'. Make sure it is in the same directory.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ def get_all_cell_types() -> list[str]:
 
     Example:
         Input: get_all_cell_types()
-        Output: ["T cell", "B cell", "Neuron"]
+        Output: ["T cells", "B cells", "Neurons"]
     """
     conn = get_connection()
     cursor = conn.cursor()
@@ -40,14 +40,14 @@ def get_markers_by_cell_type(cell_type: str) -> list[dict[str, str]]:
     Retrieves a list of marker genes for a specific cell type.
 
     Args:
-        cell_type (str): The name of the cell type to query (e.g., 'T cell', 'Neuron').
+        cell_type (str): The name of the cell type to query (e.g., 'T cells', 'Neurons').
 
     Returns:
         list[dict[str, str]]: A list of dictionaries containing marker gene details (marker_gene, tissue, species, source).
 
     Example:
-        Input: get_markers_by_cell_type("T cell")
-        Output: [{"marker_gene": "CD3E", "tissue": "Blood", "species": "Human", "source": "PBMC"}]
+        Input: get_markers_by_cell_type("T cells")
+        Output: [{"marker_gene": "CD3E", "tissue": "Immune system", "species": "Hs", "source": "PanglaoDB"}]
     """
     conn = get_connection()
     cursor = conn.cursor()
@@ -73,7 +73,7 @@ def get_cell_types_by_marker(marker_gene: str) -> list[dict[str, str]]:
 
     Example:
         Input: get_cell_types_by_marker("CD3E")
-        Output: [{"cell_type": "T cell", "tissue": "Blood", "species": "Human", "source": "PBMC"}]
+        Output: [{"cell_type": "T cells", "tissue": "Immune system", "species": "Mm Hs", "source": "PanglaoDB"}]
     """
     conn = get_connection()
     cursor = conn.cursor()
