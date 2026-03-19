@@ -3,6 +3,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import create_agent
 
 from config import LLM_MODEL
+from system_prompt import SC_BOT_SYSTEM_PROMPT
 from tools import get_all_cell_types, get_markers_by_cell_type, get_cell_types_by_marker
 
 
@@ -24,6 +25,7 @@ def create_ai_agent() -> CompiledStateGraph:
     agent = create_agent(
         model=llm,
         tools=tools,
+        system_prompt=SC_BOT_SYSTEM_PROMPT,
     )
 
     return agent
