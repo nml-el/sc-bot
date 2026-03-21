@@ -1,4 +1,4 @@
-from tools import get_all_cell_types, get_cell_types_by_marker, get_markers_by_cell_type
+from sc_bot.tools import get_all_cell_types, get_cell_types_by_marker, get_markers_by_cell_type
 
 
 def test_get_all_cell_types() -> None:

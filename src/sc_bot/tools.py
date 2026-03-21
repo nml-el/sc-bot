@@ -1,7 +1,7 @@
 import sqlite3
 from langchain_core.tools import tool
 
-from config import DB_PATH
+from sc_bot.config import DB_PATH
 
 
 def get_connection() -> sqlite3.Connection:

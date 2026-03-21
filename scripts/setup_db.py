@@ -3,9 +3,9 @@ import sqlite3
 import sys
 import os
 
-# Add the root directory to sys.path to allow importing config
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import DB_PATH
+# Add the src directory to sys.path to allow importing config
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
+from sc_bot.config import DB_PATH
 
 
 def setup_database() -> None:

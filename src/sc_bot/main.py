@@ -9,10 +9,10 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
-from agent import create_ai_agent
-from config import LLM_MODEL
-from models import AgentResponse
-from logger import setup_session_logger
+from sc_bot.agent import create_ai_agent
+from sc_bot.config import LLM_MODEL
+from sc_bot.models import AgentResponse
+from sc_bot.logger import setup_session_logger
 
 
 def format_output(raw_message: str) -> AgentResponse:
