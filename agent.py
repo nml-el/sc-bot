@@ -1,6 +1,6 @@
 from langgraph.graph.state import CompiledStateGraph
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 
 from config import LLM_MODEL
 from system_prompt import SC_BOT_SYSTEM_PROMPT
@@ -22,10 +22,10 @@ def create_ai_agent() -> CompiledStateGraph:
     ]
 
     # Create the ReAct agent using the prebuilt LangGraph function
-    agent = create_agent(
+    agent = create_react_agent(
         model=llm,
         tools=tools,
-        system_prompt=SC_BOT_SYSTEM_PROMPT,
+        prompt=SC_BOT_SYSTEM_PROMPT,
     )
 
     return agent
