@@ -4,12 +4,11 @@ from typing import Any
 
 from rich.console import RenderableType
 from rich.markdown import Markdown
-from rich.panel import Panel
 from rich.text import Text
 from textual import work
 from textual.app import App, ComposeResult
-from textual.containers import VerticalScroll
-from textual.widgets import Input, Static
+from textual.containers import VerticalScroll, Container
+from textual.widgets import Input, Static, Button
 from textual.worker import get_current_worker
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
@@ -36,54 +35,44 @@ COLOR_ERROR = "#f7768e"
 COLOR_THINKING = "#e0af68"
 
 
-class ChatMessage(Static):
-    """A widget to display a chat message within a styled Rich Panel."""
+class ChatMessage(Container):
+    """A widget to display a chat message within a styled container."""
 
-    def __init__(self, content: RenderableType | str, role: str, **kwargs: Any) -> None:
+    def __init__(self, content: RenderableType | str, role: str, copy_text: str | None = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self._content = content
+        self._msg_content = content
         self.role = role
+        self.copy_text = copy_text
 
-    def render(self) -> RenderableType:
+    def compose(self) -> ComposeResult:
+        yield Static(self._msg_content, classes="msg-content")
+
+        if self.copy_text:
+            yield Button("Copy", id=f"copy-{id(self)}", classes="copy-btn")
+
+    def on_mount(self) -> None:
         if self.role == "user":
-            border_style = COLOR_USER
-            title = "User"
-            title_align = "right"
-            subtitle = ""
+            self.border_title = "User"
+            self.classes = "role-user"
         elif self.role == "ai":
-            border_style = COLOR_AI
-            title = "sc-bot"
-            title_align = "left"
-            subtitle = ""
+            self.border_title = "sc-bot"
+            self.classes = "role-ai"
         elif self.role == "error":
-            border_style = COLOR_ERROR
-            title = "Error"
-            title_align = "left"
-            subtitle = ""
+            self.border_title = "Error"
+            self.classes = "role-error"
         elif self.role == "system":
-            border_style = THEME_FG
-            title = "System"
-            title_align = "center"
-            subtitle = ""
+            self.border_title = "System"
+            self.classes = "role-system"
         elif self.role == "thinking":
-            border_style = COLOR_THINKING
-            title = "sc-bot is thinking..."
-            title_align = "left"
-            subtitle = ""
+            self.border_title = "sc-bot is thinking..."
+            self.classes = "role-thinking"
         else:
-            border_style = THEME_FG
-            title = ""
-            title_align = "left"
-            subtitle = ""
+            self.classes = "role-system"
 
-        return Panel(
-            self._content,
-            title=title,
-            title_align=title_align,
-            border_style=border_style,
-            subtitle=subtitle,
-            padding=(1, 2),
-        )
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.has_class("copy-btn") and self.copy_text:
+            self.app.copy_to_clipboard(self.copy_text)
+            self.app.notify("Copied to clipboard!", timeout=3)
 
 
 class ScBotApp(App):
@@ -103,6 +92,54 @@ class ScBotApp(App):
     ChatMessage {{
         margin-bottom: 1;
         width: 100%;
+        padding: 0 1;
+        height: auto;
+        background: {THEME_BG};
+    }}
+
+    ChatMessage.role-user {{
+        border: solid {COLOR_USER};
+        border-title-align: right;
+        border-title-color: {COLOR_USER};
+    }}
+    
+    ChatMessage.role-ai {{
+        border: solid {COLOR_AI};
+        border-title-align: left;
+        border-title-color: {COLOR_AI};
+    }}
+    
+    ChatMessage.role-error {{
+        border: solid {COLOR_ERROR};
+        border-title-color: {COLOR_ERROR};
+    }}
+    
+    ChatMessage.role-system {{
+        border: solid {THEME_FG};
+        border-title-align: center;
+        border-title-color: {THEME_FG};
+    }}
+    
+    ChatMessage.role-thinking {{
+        border: solid {COLOR_THINKING};
+        border-title-color: {COLOR_THINKING};
+    }}
+
+    .msg-content {{
+        height: auto;
+    }}
+
+    .copy-btn {{
+        margin-top: 1;
+        background: #24283b;
+        color: {COLOR_AI};
+        border: none;
+        height: 3;
+        min-width: 20;
+    }}
+    .copy-btn:hover {{
+        background: {COLOR_AI};
+        color: {THEME_BG};
     }}
 
     #chat-input {{
@@ -113,7 +150,7 @@ class ScBotApp(App):
         border: solid {COLOR_USER};
     }}
     #chat-input:focus {{
-        border: bold {COLOR_AI};
+        border: thick {COLOR_AI};
     }}
     """
 
@@ -231,11 +268,14 @@ class ScBotApp(App):
         container = self.query_one("#chat-container", VerticalScroll)
 
         content = response_data.response
+        copy_text = None
+
         if response_data.genes:
             genes_list_str = json.dumps(response_data.genes)
+            copy_text = genes_list_str
             content += f"\n\n```python\n{genes_list_str}\n```"
 
-        container.mount(ChatMessage(Markdown(content), role="ai"))
+        container.mount(ChatMessage(Markdown(content), role="ai", copy_text=copy_text))
         container.scroll_end(animate=False)
 
         # Re-enable input

@@ -45,9 +45,12 @@ def format_output(raw_message: str) -> AgentResponse:
         [
             (
                 "system",
-                "You are an expert biological data extractor. "
-                "Extract the natural language response and any specific marker genes mentioned in the text. "
-                "If no genes are mentioned, return an empty list for the genes.",
+                "You are an expert biological data extractor and assistant. "
+                "Your task is to take the provided text, extract any specific marker genes mentioned into a list, "
+                "and rewrite the natural language response to be pragmatic and helpful for a single-cell analysis. "
+                "CRITICALLY: Do NOT include the actual gene names in the natural language response if you are extracting them into the list. "
+                "Instead, simply introduce the list (e.g., 'Here are the marker genes for B cells:'). "
+                "If no genes are mentioned, return an empty list for the genes and keep the response helpful.",
             ),
             ("human", "{text}"),
         ]
