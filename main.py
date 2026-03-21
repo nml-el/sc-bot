@@ -1,16 +1,18 @@
 import os
 import json
+import uuid
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.prompt import Prompt
-from langchain.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from agent import create_ai_agent
 from config import LLM_MODEL
 from models import AgentResponse
+from logger import setup_session_logger
 
 
 def format_output(raw_message: str) -> AgentResponse:
@@ -53,8 +55,14 @@ def main() -> None:
         return
 
     console = Console()
-    console.print("[bold green]Welcome to sc-bot![/bold green] Type 'quit' or 'exit' to leave.")
+    session_id = uuid.uuid4().hex
+    logger = setup_session_logger(session_id)
+
+    console.print(
+        f"[bold green]Welcome to sc-bot![/bold green] (Session ID: {session_id}) Type 'quit' or 'exit' to leave."
+    )
     console.print("I can help you query cell type and marker gene information.\n")
+    logger.info("Session started.")
 
     agent = create_ai_agent()
 
@@ -76,8 +84,13 @@ def main() -> None:
         if not user_input.strip():
             continue
 
+        logger.info(f"User Input: {user_input}")
+
         # Add user message to history
         messages.append(HumanMessage(user_input))
+
+        # Track the length of messages before the agent invocation
+        initial_msg_len = len(messages)
 
         try:
             with console.status("[bold yellow]Thinking...[/bold yellow]", spinner="dots"):
@@ -85,6 +98,19 @@ def main() -> None:
 
             # Update history with the final state
             messages = response["messages"]
+
+            # Log the agent's internal thinking process
+            for msg in messages[initial_msg_len:]:
+                if isinstance(msg, AIMessage):
+                    if msg.tool_calls:
+                        for tool_call in msg.tool_calls:
+                            logger.info(
+                                f"Agent decided to call tool: {tool_call['name']} with args: {tool_call['args']}"
+                            )
+                    if msg.content:
+                        logger.info(f"Agent Thought/Output: {msg.content}")
+                elif isinstance(msg, ToolMessage):
+                    logger.info(f"Tool executed. Name: {msg.name}, Result: {str(msg.content)[:500]}...")
 
             # The final response from the agent is the last message
             raw_ai_message = messages[-1].content

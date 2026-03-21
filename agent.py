@@ -25,7 +25,7 @@ def create_ai_agent() -> CompiledStateGraph:
     agent = create_agent(
         model=llm,
         tools=tools,
-        prompt=SC_BOT_SYSTEM_PROMPT,
+        system_prompt=SC_BOT_SYSTEM_PROMPT,
     )
 
     return agent

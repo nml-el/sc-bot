@@ -16,3 +16,4 @@ wheels/
 *.sqlite
 data/raw/*
 !data/raw/.gitkeep
+logs/
