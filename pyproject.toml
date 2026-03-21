@@ -21,3 +21,9 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+
+[project.scripts]
+sc-bot = "sc_bot.main:main"
+
+[tool.uv]
+package = true

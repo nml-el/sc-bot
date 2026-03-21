@@ -1,5 +1,6 @@
 import logging
-from pathlib import Path
+
+from sc_bot.config import LOGS_DIR
 
 
 def setup_session_logger(session_id: str) -> logging.Logger:
@@ -16,10 +17,7 @@ def setup_session_logger(session_id: str) -> logging.Logger:
         Input: setup_session_logger("abc-123")
         Output: <Logger session_abc-123 (INFO)>
     """
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
-
-    log_file = log_dir / f"session_{session_id}.log"
+    log_file = LOGS_DIR / f"session_{session_id}.log"
 
     logger = logging.getLogger(f"session_{session_id}")
     logger.setLevel(logging.INFO)

@@ -4,11 +4,18 @@ Configuration settings for the sc-bot project.
 
 from pathlib import Path
 
-# Get the absolute path to the project root (2 levels up from this file)
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+# Base directory for the CLI tool data and logs in the user's home directory
+SC_BOT_DIR = Path.home() / ".sc-bot"
 
 # Database configuration
-DB_PATH: str = str(PROJECT_ROOT / "data" / "sc_markers.db")
+DB_PATH = SC_BOT_DIR / "sc_markers.db"
+
+# Logs configuration
+LOGS_DIR = SC_BOT_DIR / "logs"
 
 # LLM configuration
 LLM_MODEL: str = "gemini-2.5-flash-lite"
+
+# Ensure the base directories exist
+SC_BOT_DIR.mkdir(parents=True, exist_ok=True)
+LOGS_DIR.mkdir(parents=True, exist_ok=True)

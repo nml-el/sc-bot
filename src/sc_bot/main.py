@@ -10,7 +10,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from sc_bot.agent import create_ai_agent
-from sc_bot.config import LLM_MODEL
+from sc_bot.config import LLM_MODEL, DB_PATH
 from sc_bot.models import AgentResponse
 from sc_bot.logger import setup_session_logger
 
@@ -48,6 +48,13 @@ def format_output(raw_message: str) -> AgentResponse:
 def main() -> None:
     # Load environment variables (e.g., GEMINI_API_KEY)
     load_dotenv()
+
+    console = Console()
+
+    if not DB_PATH.exists():
+        console.print(f"[bold red]Error:[/bold red] Database not found at {DB_PATH}")
+        console.print("Please run [bold cyan]python scripts/setup_db.py[/bold cyan] to initialize the database.")
+        return
 
     if not os.environ.get("GEMINI_API_KEY"):
         print("Error: GEMINI_API_KEY not found in .env file or environment variables.")
