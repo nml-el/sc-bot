@@ -22,14 +22,33 @@ def setup_database() -> None:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
+    # Create species table
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS cell_markers (
+        CREATE TABLE IF NOT EXISTS species (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            taxa_id INTEGER NOT NULL UNIQUE,
+            abbreviation TEXT NOT NULL UNIQUE
+        )
+    """)
+
+    # Populate species table
+    cursor.execute("INSERT OR IGNORE INTO species (id, name, taxa_id, abbreviation) VALUES (1, 'Human', 9606, 'Hs')")
+    cursor.execute("INSERT OR IGNORE INTO species (id, name, taxa_id, abbreviation) VALUES (2, 'Mouse', 10090, 'Mm')")
+
+    # Clear existing table so schema updates are applied
+    cursor.execute("DROP TABLE IF EXISTS cell_markers")
+
+    # Create cell_markers table
+    cursor.execute("""
+        CREATE TABLE cell_markers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cell_type TEXT NOT NULL,
             tissue TEXT NOT NULL,
             marker_gene TEXT NOT NULL,
-            species TEXT NOT NULL,
-            source TEXT NOT NULL
+            species_id INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            FOREIGN KEY(species_id) REFERENCES species(id)
         )
     """)
 
@@ -48,13 +67,23 @@ def setup_database() -> None:
                 cell_type = row.get("cell type", "Unknown")
                 tissue = row.get("organ", "Unknown")
                 marker_gene = row.get("official gene symbol", "Unknown")
-                species = row.get("species", "Unknown")
+                species_str = row.get("species", "Unknown")
 
-                data_to_insert.append((cell_type, tissue, marker_gene, species, source_name))
+                # Handle species splitting (e.g., "Mm Hs")
+                abbreviations = species_str.split()
+                for abbr in abbreviations:
+                    if abbr == "Hs":
+                        species_id = 1
+                    elif abbr == "Mm":
+                        species_id = 2
+                    else:
+                        continue  # Skip unknown species
+
+                    data_to_insert.append((cell_type, tissue, marker_gene, species_id, source_name))
 
         cursor.executemany(
             """
-            INSERT INTO cell_markers (cell_type, tissue, marker_gene, species, source)
+            INSERT INTO cell_markers (cell_type, tissue, marker_gene, species_id, source)
             VALUES (?, ?, ?, ?, ?)
         """,
             data_to_insert,
