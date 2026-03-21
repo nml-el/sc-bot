@@ -1,18 +1,38 @@
-import os
 import json
+import os
 import uuid
 from dotenv import load_dotenv
-from rich.console import Console
-from rich.markdown import Markdown
-from rich.prompt import Prompt
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_google_genai import ChatGoogleGenerativeAI
+from rich.console import Console, Group
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.text import Text
 
 from sc_bot.agent import create_ai_agent
-from sc_bot.config import LLM_MODEL, DB_PATH
-from sc_bot.models import AgentResponse
+from sc_bot.config import DB_PATH, LLM_MODEL
 from sc_bot.logger import setup_session_logger
+from sc_bot.models import AgentResponse
+
+# Catppuccin Mocha Colors
+CTP_MAUVE = "#cba6f7"
+CTP_BLUE = "#89b4fa"
+CTP_SAPPHIRE = "#74c7ec"
+CTP_GREEN = "#a6e3a1"
+CTP_RED = "#f38ba8"
+CTP_TEXT = "#cdd6f4"
+
+ASCII_ART = r"""
+███████╗ ██████╗       ██████╗  ██████╗ ████████╗
+██╔════╝██╔════╝       ██╔══██╗██╔═══██╗╚══██╔══╝
+███████╗██║      █████╗██████╔╝██║   ██║   ██║   
+╚════██║██║      ╚════╝██╔══██╗██║   ██║   ██║   
+███████║╚██████╗       ██████╔╝╚██████╔╝   ██║   
+╚══════╝ ╚═════╝       ╚═════╝  ╚═════╝    ╚═╝   
+"""
 
 
 def format_output(raw_message: str) -> AgentResponse:
@@ -45,6 +65,34 @@ def format_output(raw_message: str) -> AgentResponse:
         return AgentResponse(response=raw_message, genes=[])
 
 
+def print_welcome_banner(console: Console, session_id: str) -> None:
+    """Prints the styled ASCII art and welcome message in a panel."""
+    # Clear terminal
+    console.clear()
+
+    # Create the text components
+    art_text = Text(ASCII_ART, style=CTP_MAUVE, justify="center")
+    welcome_text = Text("\nWelcome to sc-bot!\n", style=f"bold {CTP_TEXT}", justify="center")
+    desc_text = Text("I can help you query cell type and marker gene information.\n", style=CTP_TEXT, justify="center")
+    session_text = Text(f"Session ID: {session_id}\n", style=CTP_SAPPHIRE, justify="center")
+    help_text = Text("Type 'quit' or 'exit' to leave.", style=f"dim {CTP_TEXT}", justify="center")
+
+    # Group them together
+    banner_group = Group(art_text, welcome_text, desc_text, session_text, help_text)
+
+    # Wrap in a panel
+    banner_panel = Panel(
+        banner_group,
+        border_style=CTP_BLUE,
+        padding=(1, 2),
+        expand=False,
+    )
+
+    # Print centered
+    console.print(banner_panel, justify="center")
+    console.print("\n")
+
+
 def main() -> None:
     # Load environment variables (e.g., GEMINI_API_KEY)
     load_dotenv()
@@ -52,23 +100,32 @@ def main() -> None:
     console = Console()
 
     if not DB_PATH.exists():
-        console.print(f"[bold red]Error:[/bold red] Database not found at {DB_PATH}")
-        console.print("Please run [bold cyan]python scripts/setup_db.py[/bold cyan] to initialize the database.")
+        error_panel = Panel(
+            Text(f"Database not found at {DB_PATH}\n\nPlease run: uv run python scripts/setup_db.py", style=CTP_TEXT),
+            title="---Error---",
+            title_align="left",
+            border_style=CTP_RED,
+        )
+        console.print(error_panel)
         return
 
     if not os.environ.get("GEMINI_API_KEY"):
-        print("Error: GEMINI_API_KEY not found in .env file or environment variables.")
-        print("Please add your key to a .env file: GEMINI_API_KEY=your_key_here")
+        error_panel = Panel(
+            Text(
+                "GEMINI_API_KEY not found in .env file or environment variables.\nPlease add your key to a .env file: GEMINI_API_KEY=your_key_here",
+                style=CTP_TEXT,
+            ),
+            title="---Error---",
+            title_align="left",
+            border_style=CTP_RED,
+        )
+        console.print(error_panel)
         return
 
-    console = Console()
     session_id = uuid.uuid4().hex
     logger = setup_session_logger(session_id)
 
-    console.print(
-        f"[bold green]Welcome to sc-bot![/bold green] (Session ID: {session_id}) Type 'quit' or 'exit' to leave."
-    )
-    console.print("I can help you query cell type and marker gene information.\n")
+    print_welcome_banner(console, session_id)
     logger.info("Session started.")
 
     agent = create_ai_agent()
@@ -81,7 +138,9 @@ def main() -> None:
 
     while True:
         try:
-            user_input = Prompt.ask("[bold cyan](sc-bot) >[/bold cyan]")
+            # Prompt styling
+            prompt_style = f"bold {CTP_SAPPHIRE}"
+            user_input = Prompt.ask(f"[{prompt_style}](sc-bot) >[/{prompt_style}]")
         except (KeyboardInterrupt, EOFError):
             break
 
@@ -93,6 +152,17 @@ def main() -> None:
 
         logger.info(f"User Input: {user_input}")
 
+        # Echo user input in a styled panel
+        user_panel = Panel(
+            Text(user_input, style=CTP_TEXT),
+            title="---User---",
+            title_align="left",
+            border_style=CTP_SAPPHIRE,
+            padding=(0, 1),
+        )
+        console.print()
+        console.print(user_panel)
+
         # Add user message to history
         messages.append(HumanMessage(user_input))
 
@@ -100,7 +170,7 @@ def main() -> None:
         initial_msg_len = len(messages)
 
         try:
-            with console.status("[bold yellow]Thinking...[/bold yellow]", spinner="dots"):
+            with console.status(f"[{CTP_MAUVE}]Thinking...[/{CTP_MAUVE}]", spinner="dots"):
                 response = agent.invoke({"messages": messages})
 
             # Update history with the final state
@@ -123,25 +193,40 @@ def main() -> None:
             raw_ai_message = messages[-1].content
 
             # Extract structured data
-            with console.status("[bold blue]Formatting output...[/bold blue]", spinner="dots"):
+            with console.status(f"[{CTP_BLUE}]Formatting output...[/{CTP_BLUE}]", spinner="dots"):
                 structured_data = format_output(raw_ai_message)
 
-            console.print("\n")
-            # Print the natural language response
-            console.print(Markdown(structured_data.response))
-            console.print("\n")
+            # Build the AI response visual components
+            renderables = [Markdown(structured_data.response)]
 
-            # Print the python list of genes if they exist
             if structured_data.genes:
-                # Create a string representation of the python list
                 genes_list_str = json.dumps(structured_data.genes)
-                # Format as a python code block for easy copying
                 markdown_code_block = f"```python\n{genes_list_str}\n```"
-                console.print(Markdown(markdown_code_block))
-                console.print("\n")
+                renderables.append(Text(""))  # Spacing
+                renderables.append(Markdown(markdown_code_block))
+
+            ai_group = Group(*renderables)
+
+            # Wrap in an AI Response panel
+            ai_panel = Panel(
+                ai_group,
+                title="---AI Response---",
+                title_align="left",
+                border_style=CTP_GREEN,
+                padding=(1, 2),
+            )
+
+            console.print(ai_panel)
+            console.print("\n")
 
         except Exception as e:
-            console.print(f"[bold red]Error:[/bold red] {e}")
+            error_panel = Panel(
+                Text(str(e), style=CTP_TEXT),
+                title="---Error---",
+                title_align="left",
+                border_style=CTP_RED,
+            )
+            console.print(error_panel)
 
 
 if __name__ == "__main__":
