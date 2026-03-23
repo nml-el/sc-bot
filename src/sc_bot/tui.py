@@ -5,6 +5,7 @@ from typing import Any
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.text import Text
+from rich.align import Align
 from textual import work
 from textual.app import App, ComposeResult
 from textual.containers import VerticalScroll, Container, Horizontal
@@ -212,8 +213,9 @@ class ScBotApp(App):
         container = self.query_one("#chat-container", VerticalScroll)
 
         # Add ASCII Art
-        ascii_text = Text(ASCII_ART, style=f"bold {COLOR_USER}", justify="center")
-        container.mount(ChatMessage(ascii_text, role="system"))
+        ascii_text = Text(ASCII_ART, style=f"bold {COLOR_USER}")
+        centered_ascii = Align.center(ascii_text)
+        container.mount(ChatMessage(centered_ascii, role="system"))
 
         # Add Use Cases Box
         use_cases = Markdown(

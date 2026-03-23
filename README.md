@@ -1,11 +1,13 @@
-```text
+<div align="center">
+<pre>
 ███████╗ ██████╗       ██████╗  ██████╗ ████████╗
 ██╔════╝██╔════╝       ██╔══██╗██╔═══██╗╚══██╔══╝
 ███████╗██║      █████╗██████╔╝██║   ██║   ██║   
 ╚════██║██║      ╚════╝██╔══██╗██║   ██║   ██║   
 ███████║╚██████╗       ██████╔╝╚██████╔╝   ██║   
 ╚══════╝ ╚═════╝       ╚═════╝  ╚═════╝    ╚═╝   
-```
+</pre>
+</div>
 
 **sc-bot** is a terminal-based conversational interface for single-cell biology. It provides functionality to query cell type markers, resolve cell ontology lineages, and explore single-cell data context directly from the command line.
 
