@@ -34,7 +34,24 @@ cd sc-bot
 uv sync
 ```
 
-### 3. Configure API Key
+### 3. Download Raw Data
+sc-bot relies on PanglaoDB and the Uberon ontology. Download these into the `data/raw/` directory:
+```bash
+# Download and unzip PanglaoDB markers
+curl -o data/raw/PanglaoDB_markers_27_Mar_2020.tsv.gz https://panglaodb.se/markers/PanglaoDB_markers_27_Mar_2020.tsv.gz
+gunzip data/raw/PanglaoDB_markers_27_Mar_2020.tsv.gz
+
+# Download Uberon ontology
+curl -L -o data/raw/uberon-full.json http://purl.obolibrary.org/obo/uberon/uberon-full.json
+```
+
+### 4. Initialize the Database
+Build the local SQLite database from the downloaded files:
+```bash
+uv run python scripts/setup_db.py
+```
+
+### 5. Configure API Key
 sc-bot requires a Google Gemini API key. Generate a key from Google AI Studio.
 Create a `.env` file in the project directory:
 ```bash
@@ -42,7 +59,7 @@ echo "GOOGLE_API_KEY=" > .env
 ```
 *Open the `.env` file in a text editor (e.g., nano, vim, or VS Code) and append your API key after the equals sign.*
 
-### 4. Run sc-bot
+### 6. Run sc-bot
 Launch the interactive terminal UI:
 ```bash
 uv run sc-bot
