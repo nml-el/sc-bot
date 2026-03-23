@@ -3,12 +3,12 @@ from sc_bot.tools import get_all_cell_types, get_cell_types_by_marker, get_marke
 
 def test_get_all_cell_types() -> None:
     cell_types = get_all_cell_types.invoke({})
-    assert "T cells" in cell_types
-    assert "B cells" in cell_types
+    assert "T cell" in cell_types
+    assert "B cell" in cell_types
 
 
 def test_t_cell_markers() -> None:
-    markers = get_markers_by_cell_type.invoke({"cell_types": ["T cells"]})
+    markers = get_markers_by_cell_type.invoke({"cell_types": ["T cell"]})
     assert isinstance(markers, list)
     assert len(markers) > 0
     # Find CD3E in the returned markers
@@ -17,7 +17,7 @@ def test_t_cell_markers() -> None:
 
 
 def test_b_cell_markers() -> None:
-    markers = get_markers_by_cell_type.invoke({"cell_types": ["B cells"]})
+    markers = get_markers_by_cell_type.invoke({"cell_types": ["B cell"]})
     assert isinstance(markers, list)
     assert len(markers) > 0
     marker_genes = [m["marker_gene"] for m in markers]
@@ -25,7 +25,7 @@ def test_b_cell_markers() -> None:
 
 
 def test_common_markers_t_and_b_cells() -> None:
-    markers = get_markers_by_cell_type.invoke({"cell_types": ["T cells", "B cells"]})
+    markers = get_markers_by_cell_type.invoke({"cell_types": ["T cell", "B cell"]})
     assert isinstance(markers, list)
     marker_genes = [m["marker_gene"] for m in markers]
     # CXCR4 is a known common marker between T cells and B cells in PanglaoDB (Human)
@@ -36,14 +36,14 @@ def test_cell_types_by_marker_cd3e() -> None:
     cell_types = get_cell_types_by_marker.invoke({"marker_genes": ["CD3E"]})
     assert isinstance(cell_types, list)
     cell_type_names = [c["cell_type"] for c in cell_types]
-    assert "T cells" in cell_type_names
+    assert "T cell" in cell_type_names
 
 
 def test_cell_types_by_marker_cd19() -> None:
     cell_types = get_cell_types_by_marker.invoke({"marker_genes": ["CD19"]})
     assert isinstance(cell_types, list)
     cell_type_names = [c["cell_type"] for c in cell_types]
-    assert "B cells" in cell_type_names
+    assert "B cell" in cell_type_names
 
 
 def test_cell_types_by_multiple_markers() -> None:
@@ -51,11 +51,11 @@ def test_cell_types_by_multiple_markers() -> None:
     cell_types = get_cell_types_by_marker.invoke({"marker_genes": ["CD3E", "CD8A"]})
     assert isinstance(cell_types, list)
     cell_type_names = [c["cell_type"] for c in cell_types]
-    assert "T cells" in cell_type_names
+    assert "T cell" in cell_type_names
 
 
 def test_mouse_t_cell_markers() -> None:
-    markers = get_markers_by_cell_type.invoke({"cell_types": ["T cells"], "species": "Mouse"})
+    markers = get_markers_by_cell_type.invoke({"cell_types": ["T cell"], "species": "Mouse"})
     assert isinstance(markers, list)
     assert len(markers) > 0
     marker_genes = [m["marker_gene"] for m in markers]
@@ -71,7 +71,7 @@ def test_species_isolation_mouse_exclusive() -> None:
 
     assert len(mouse_cell_types) > 0, "TRY4 should return results for Mouse"
     cell_type_names = [c["cell_type"] for c in mouse_cell_types]
-    assert "Acinar cells" in cell_type_names
+    assert "acinar cell" in cell_type_names
 
 
 def test_species_isolation_human_exclusive() -> None:
@@ -83,4 +83,16 @@ def test_species_isolation_human_exclusive() -> None:
 
     assert len(human_cell_types) > 0, "CTRB2 should return results for Human"
     cell_type_names = [c["cell_type"] for c in human_cell_types]
-    assert "Acinar cells" in cell_type_names
+    assert "acinar cell" in cell_type_names
+
+
+def test_resolve_cell_type_lineage() -> None:
+    # "T cells" should resolve to canonical "T cell"
+    markers = get_markers_by_cell_type.invoke({"cell_types": ["T cells"]})
+    assert len(markers) > 0
+
+    # "B-lymphocytes" should resolve to canonical "B cell" via synonyms
+    markers2 = get_markers_by_cell_type.invoke({"cell_types": ["B-lymphocytes"]})
+    assert len(markers2) > 0
+    marker_genes2 = [m["marker_gene"] for m in markers2]
+    assert "CD19" in marker_genes2

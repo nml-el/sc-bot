@@ -46,11 +46,15 @@ def format_output(raw_message: str) -> AgentResponse:
             (
                 "system",
                 "You are an expert biological data extractor and assistant. "
-                "Your task is to take the provided text, extract any specific marker genes mentioned into a list, "
-                "and rewrite the natural language response to be pragmatic and helpful for a single-cell analysis. "
-                "CRITICALLY: Do NOT include the actual gene names in the natural language response if you are extracting them into the list. "
-                "Instead, simply introduce the list (e.g., 'Here are the marker genes for B cells:'). "
-                "If no genes are mentioned, return an empty list for the genes and keep the response helpful.",
+                "Your task is to take the provided text, which may contain a raw list of genes from a database, "
+                "and identify the most important, universally accepted canonical primary markers (usually 3-10 genes), "
+                "as well as a small set of secondary/supportive markers. "
+                "Extract these into the respective primary and secondary lists. "
+                "Then, rewrite the natural language response to provide a minimal, high-level context explaining "
+                "why these specific markers are defining for the cell type(s). "
+                "CRITICALLY: Do NOT list the actual gene names inline in your natural language response, "
+                "as they will be rendered as lists by the UI. Simply introduce the lists. "
+                "If no genes are mentioned, return empty lists and keep the response helpful.",
             ),
             ("human", "{text}"),
         ]
@@ -63,4 +67,4 @@ def format_output(raw_message: str) -> AgentResponse:
         return result
     else:
         # Fallback if the structured LLM fails to return the exact type
-        return AgentResponse(response=raw_message, genes=[])
+        return AgentResponse(response=raw_message, primary_markers=[], secondary_markers=[])

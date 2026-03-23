@@ -7,7 +7,7 @@ from rich.markdown import Markdown
 from rich.text import Text
 from textual import work
 from textual.app import App, ComposeResult
-from textual.containers import VerticalScroll, Container
+from textual.containers import VerticalScroll, Container, Horizontal
 from textual.widgets import Input, Static, Button
 from textual.worker import get_current_worker
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
@@ -38,17 +38,30 @@ COLOR_THINKING = "#e0af68"
 class ChatMessage(Container):
     """A widget to display a chat message within a styled container."""
 
-    def __init__(self, content: RenderableType | str, role: str, copy_text: str | None = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        content: RenderableType | str,
+        role: str,
+        copy_actions: dict[str, str] | None = None,
+        copy_all_text: str | None = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self._msg_content = content
         self.role = role
-        self.copy_text = copy_text
+        self.copy_actions = copy_actions
+        self.copy_all_text = copy_all_text
 
     def compose(self) -> ComposeResult:
+        if self.copy_all_text:
+            yield Button("📋", id=f"copy-all-{id(self)}", classes="copy-all-btn")
+
         yield Static(self._msg_content, classes="msg-content")
 
-        if self.copy_text:
-            yield Button("Copy", id=f"copy-{id(self)}", classes="copy-btn")
+        if self.copy_actions:
+            with Horizontal(classes="action-buttons"):
+                for label in self.copy_actions:
+                    yield Button(label, id=f"copy-{id(self)}-{label.replace(' ', '_')}", classes="copy-btn")
 
     def on_mount(self) -> None:
         if self.role == "user":
@@ -70,9 +83,16 @@ class ChatMessage(Container):
             self.classes = "role-system"
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.has_class("copy-btn") and self.copy_text:
-            self.app.copy_to_clipboard(self.copy_text)
-            self.app.notify("Copied to clipboard!", timeout=3)
+        if event.button.has_class("copy-all-btn") and self.copy_all_text:
+            self.app.copy_to_clipboard(self.copy_all_text)
+            self.app.notify("Copied all markers!", timeout=3)
+        elif event.button.has_class("copy-btn") and self.copy_actions:
+            label = str(event.button.label)
+            text_to_copy = self.copy_actions.get(label)
+            if text_to_copy:
+                self.app.copy_to_clipboard(text_to_copy)
+                action_name = label.replace("Copy ", "").lower()
+                self.app.notify(f"Copied {action_name}!", timeout=3)
 
 
 class ScBotApp(App):
@@ -95,6 +115,7 @@ class ScBotApp(App):
         padding: 0 1;
         height: auto;
         background: {THEME_BG};
+        position: relative;
     }}
 
     ChatMessage.role-user {{
@@ -127,10 +148,12 @@ class ScBotApp(App):
 
     .msg-content {{
         height: auto;
+        padding-top: 1;
     }}
 
     .copy-btn {{
         margin-top: 1;
+        margin-right: 1;
         background: #24283b;
         color: {COLOR_AI};
         border: none;
@@ -140,6 +163,25 @@ class ScBotApp(App):
     .copy-btn:hover {{
         background: {COLOR_AI};
         color: {THEME_BG};
+    }}
+
+    .copy-all-btn {{
+        dock: right;
+        background: transparent;
+        color: {THEME_FG};
+        border: none;
+        min-width: 5;
+        height: 1;
+        padding: 0;
+    }}
+    .copy-all-btn:hover {{
+        color: {COLOR_AI};
+        background: transparent;
+    }}
+
+    .action-buttons {{
+        height: auto;
+        align: left middle;
     }}
 
     #chat-input {{
@@ -268,14 +310,32 @@ class ScBotApp(App):
         container = self.query_one("#chat-container", VerticalScroll)
 
         content = response_data.response
-        copy_text = None
+        copy_actions = None
+        copy_all_text = None
 
-        if response_data.genes:
-            genes_list_str = json.dumps(response_data.genes)
-            copy_text = genes_list_str
-            content += f"\n\n```python\n{genes_list_str}\n```"
+        if response_data.primary_markers or response_data.secondary_markers:
+            copy_actions = {}
+            combined_markers = {}
 
-        container.mount(ChatMessage(Markdown(content), role="ai", copy_text=copy_text))
+            if response_data.primary_markers:
+                primary_json_copy = json.dumps(response_data.primary_markers, indent=2)
+                primary_json_display = json.dumps(response_data.primary_markers)
+                copy_actions["Copy Primary"] = primary_json_copy
+                combined_markers["primary"] = response_data.primary_markers
+                content += f"\n\n**Primary Canonical Markers:**\n```python\n{primary_json_display}\n```"
+
+            if response_data.secondary_markers:
+                secondary_json_copy = json.dumps(response_data.secondary_markers, indent=2)
+                secondary_json_display = json.dumps(response_data.secondary_markers)
+                copy_actions["Copy Secondary"] = secondary_json_copy
+                combined_markers["secondary"] = response_data.secondary_markers
+                content += f"\n\n**Secondary/Supportive Markers:**\n```python\n{secondary_json_display}\n```"
+
+            copy_all_text = json.dumps(combined_markers, indent=2)
+
+        container.mount(
+            ChatMessage(Markdown(content), role="ai", copy_actions=copy_actions, copy_all_text=copy_all_text)
+        )
         container.scroll_end(animate=False)
 
         # Re-enable input
