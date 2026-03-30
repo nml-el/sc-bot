@@ -94,6 +94,38 @@ def resolve_cell_type(query: str) -> str:
     return query_clean
 
 
+@lru_cache(maxsize=128)
+def resolve_tissue(query: str) -> tuple[str, ...]:
+    """
+    Resolves a natural language tissue query to a list of raw tissue names.
+    If the tissue maps to a canonical tissue, all raw names under that canonical
+    are returned. Otherwise, returns the best matched raw name.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    query_clean = query.strip()
+
+    cursor.execute("SELECT name, canonical_tissue FROM tissues")
+    tissues = cursor.fetchall()
+    conn.close()
+
+    names = [r[0] for r in tissues]
+    match = process.extractOne(query_clean, names, scorer=fuzz.token_sort_ratio)
+
+    if not match or match[1] < 75:
+        return tuple()
+
+    best_name = match[0]
+    best_canonical = next((r[1] for r in tissues if r[0] == best_name), None)
+
+    if best_canonical:
+        # Return all names sharing this canonical tissue
+        return tuple(r[0] for r in tissues if r[1] == best_canonical)
+    else:
+        # No canonical, return just the matched raw name
+        return (best_name,)
+
+
 @tool
 def get_all_cell_types() -> list[str]:
     """
@@ -115,22 +147,50 @@ def get_all_cell_types() -> list[str]:
 
 
 @tool
-def get_markers_by_cell_type(cell_types: list[str], species: str = "Human") -> list[dict[str, str]]:
+def get_tissues_for_cell_type(cell_type: str, species: str = "Human") -> list[str]:
+    """
+    Returns the list of canonical tissue categories that have data for this cell type.
+    Used by the agent to suggest tissue refinements to the user.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    resolved_type = resolve_cell_type(cell_type)
+
+    query = """
+        SELECT DISTINCT t.canonical_tissue
+        FROM cell_markers m
+        JOIN species s ON m.species_id = s.id
+        -- INNER JOIN relies on the tissues table being fully populated during ingestion
+        JOIN tissues t ON m.tissue = t.name
+        WHERE m.cell_type COLLATE NOCASE = ? 
+          AND s.name COLLATE NOCASE = ?
+          AND t.canonical_tissue IS NOT NULL
+        ORDER BY t.canonical_tissue
+    """
+    cursor.execute(query, (resolved_type, species))
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [row[0] for row in rows]
+
+
+@tool
+def get_markers_by_cell_type(
+    cell_types: list[str], species: str = "Human", tissue: str | None = None
+) -> list[dict[str, str | int]]:
     """
     Retrieves a list of marker genes for the specified cell type(s) and species.
-    It automatically resolves natural language queries (like "T cells" or "T-lymphocyte") to the correct canonical ontology cell types.
-    If multiple cell types are provided, it returns only the marker genes that are COMMON (intersection) across all provided cell types.
+    It automatically resolves natural language queries (like "T cells") to the canonical ontology cell types.
+    Optionally accepts a tissue filter to restrict results.
+    Each returned marker includes 'tissue_count' and 'source_count' scores for ranking.
 
     Args:
         cell_types (list[str]): A list of cell type names to query (e.g., ['T cell'] or ['T cell', 'B cell']).
         species (str, optional): The species to query. Valid options are "Human" or "Mouse". Defaults to "Human".
+        tissue (str | None, optional): A tissue name to filter by. Defaults to None.
 
     Returns:
-        list[dict[str, str]]: A list of dictionaries containing marker gene details (marker_gene).
-
-    Example:
-        Input: get_markers_by_cell_type(["T cell", "B cell"], "Human")
-        Output: [{"marker_gene": "CXCR4"}, {"marker_gene": "CD52"}]
+        list[dict[str, str | int]]: A list of dictionaries containing 'marker_gene', 'tissue_count', and 'source_count'.
     """
     if not cell_types:
         return []
@@ -138,32 +198,43 @@ def get_markers_by_cell_type(cell_types: list[str], species: str = "Human") -> l
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Resolve and deduplicate cell types automatically
     resolved_types = list(set(resolve_cell_type(ct) for ct in cell_types))
-
-    # Create placeholders for the IN clause
-    placeholders = ",".join("?" for _ in resolved_types)
+    ct_placeholders = ",".join("?" for _ in resolved_types)
     num_types = len(resolved_types)
 
-    # We use grouping to find genes that appear in ALL specified cell types for the given species
+    params = list(resolved_types)
+    params.append(species)
+
+    tissue_clause = ""
+    if tissue:
+        resolved_tissues = list(resolve_tissue(tissue))
+        if resolved_tissues:
+            t_placeholders = ",".join("?" for _ in resolved_tissues)
+            tissue_clause = f"AND m.tissue IN ({t_placeholders})"
+            params.extend(resolved_tissues)
+
+    params.append(num_types)
+
     query = f"""
-        SELECT m.marker_gene
+        SELECT m.marker_gene, 
+               COUNT(DISTINCT m.tissue) as tissue_count,
+               COUNT(DISTINCT m.source) as source_count
         FROM cell_markers m
         JOIN species s ON m.species_id = s.id
-        WHERE m.cell_type COLLATE NOCASE IN ({placeholders})
+        WHERE m.cell_type COLLATE NOCASE IN ({ct_placeholders})
           AND s.name COLLATE NOCASE = ?
+          AND m.marker_gene != 'nan'
+          {tissue_clause}
         GROUP BY m.marker_gene 
         HAVING COUNT(DISTINCT m.cell_type COLLATE NOCASE) = ?
+        ORDER BY source_count DESC, tissue_count DESC
     """
 
-    # The parameters are the list of cell types, plus the species, plus the count at the end for the HAVING clause
-    params = tuple(resolved_types) + (species, num_types)
-
-    cursor.execute(query, params)
+    cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     conn.close()
 
-    return [{"marker_gene": row[0]} for row in rows]
+    return [{"marker_gene": row[0], "tissue_count": row[1], "source_count": row[2]} for row in rows]
 
 
 @tool
@@ -178,10 +249,6 @@ def get_cell_types_by_marker(marker_genes: list[str], species: str = "Human") ->
 
     Returns:
         list[dict[str, str]]: A list of dictionaries containing cell type details (cell_type).
-
-    Example:
-        Input: get_cell_types_by_marker(["CD3E", "CD8A"], "Human")
-        Output: [{"cell_type": "T cell"}]
     """
     if not marker_genes:
         return []
@@ -198,6 +265,7 @@ def get_cell_types_by_marker(marker_genes: list[str], species: str = "Human") ->
         JOIN species s ON m.species_id = s.id
         WHERE m.marker_gene COLLATE NOCASE IN ({placeholders})
           AND s.name COLLATE NOCASE = ?
+          AND m.marker_gene != 'nan'
         GROUP BY m.cell_type 
         HAVING COUNT(DISTINCT m.marker_gene COLLATE NOCASE) = ?
     """

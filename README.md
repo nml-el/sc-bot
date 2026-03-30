@@ -35,8 +35,13 @@ uv sync
 ```
 
 ### 3. Download Raw Data
-sc-bot relies on PanglaoDB and the Uberon ontology. Download these into the `data/raw/` directory:
+sc-bot relies on PanglaoDB, CellMarker 2.0, and the Uberon ontology. 
+PanglaoDB and Uberon must be downloaded manually into the `data/raw/` directory, while CellMarker 2.0 is downloaded automatically during database setup.
+
 ```bash
+# Create the raw data directory if it doesn't exist
+mkdir -p data/raw
+
 # Download and unzip PanglaoDB markers
 curl -o data/raw/PanglaoDB_markers_27_Mar_2020.tsv.gz https://panglaodb.se/markers/PanglaoDB_markers_27_Mar_2020.tsv.gz
 gunzip data/raw/PanglaoDB_markers_27_Mar_2020.tsv.gz
@@ -46,10 +51,13 @@ curl -L -o data/raw/uberon-full.json http://purl.obolibrary.org/obo/uberon/ubero
 ```
 
 ### 4. Initialize the Database
-Build the local SQLite database from the downloaded files:
+Build the local SQLite database from the data sources using the orchestrator script. This will parse PanglaoDB, download and parse CellMarker 2.0, and map tissues and cell types to the ontology.
+
 ```bash
 uv run python scripts/setup_db.py
 ```
+
+*Note: You can ingest specific databases using flags like `--panglao` or `--cellmarker2`, or preserve the schema while refreshing data with `--keep-schema`.*
 
 ### 5. Configure API Key
 sc-bot requires a Google Gemini API key. Generate a key from Google AI Studio.
@@ -69,7 +77,9 @@ uv run sc-bot
 
 ## Features
 
-*   **Marker Gene Querying:** Retrieve canonical and supportive marker genes for specific cell types.
+*   **Multi-Source Marker Querying:** Retrieve canonical and supportive marker genes for specific cell types from multiple integrated databases (PanglaoDB + CellMarker 2.0).
+*   **Tissue-Aware Filtering:** Filter marker genes based on specific tissue constraints (e.g., Lungs vs. Kidneys). Queries map automatically between diverse source nomenclatures (e.g., "Lung" -> "Lungs") and canonical tissue lists.
+*   **Consensus Scoring:** Rank markers by counting their occurrence across multiple tissues (`tissue_count`) and disparate data sources (`source_count`), separating robust core primary markers from secondary context-specific ones.
 *   **Ontology Resolution:** Automatically resolve synonyms and trace lineage within the cell ontology network.
 *   **Fuzzy Matching:** Support for approximate string matching on cell type queries.
 *   **Clipboard Integration:** Built-in UI actions to copy structured marker data to the system clipboard.
@@ -79,9 +89,9 @@ uv run sc-bot
 
 ## Architecture & Development
 
-*   **Orchestration:** LangChain, LangGraph, and Google GenAI (Gemini 2.5 Flash Lite).
+*   **Orchestration:** LangChain, LangGraph, and Google GenAI (Gemini).
 *   **Interface:** Textual.
-*   **Offline Data:** Local SQLite database (`~/.sc-bot/sc_markers.db`) for ontology lookups and matching.
+*   **Offline Data:** Local SQLite database (`~/.sc-bot/sc_markers.db`) mapped by Python scripts from PanglaoDB and CellMarker 2.0.
 
 ### Development Commands
 *   Run tests: `uv run pytest`

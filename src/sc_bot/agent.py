@@ -6,7 +6,12 @@ from langchain.agents import create_agent
 from sc_bot.config import LLM_MODEL
 from sc_bot.system_prompt import SC_BOT_SYSTEM_PROMPT
 from sc_bot.models import AgentResponse
-from sc_bot.tools import get_all_cell_types, get_markers_by_cell_type, get_cell_types_by_marker
+from sc_bot.tools import (
+    get_all_cell_types,
+    get_markers_by_cell_type,
+    get_cell_types_by_marker,
+    get_tissues_for_cell_type,
+)
 
 
 def create_ai_agent() -> CompiledStateGraph:
@@ -21,6 +26,7 @@ def create_ai_agent() -> CompiledStateGraph:
         get_all_cell_types,
         get_markers_by_cell_type,
         get_cell_types_by_marker,
+        get_tissues_for_cell_type,
     ]
 
     # Creates an agent graph that calls tools in a loop until a stopping condition is met.
@@ -47,11 +53,17 @@ def format_output(raw_message: str) -> AgentResponse:
                 "system",
                 "You are an expert biological data extractor and assistant. "
                 "Your task is to take the provided text, which may contain a raw list of genes from a database, "
-                "and identify the most important, universally accepted canonical primary markers (usually 3-10 genes), "
-                "as well as a small set of secondary/supportive markers. "
+                "and identify the most important, universally accepted canonical primary markers "
+                "and a small set of secondary/supportive markers. "
+                "The provided data often includes consensus scores: `tissue_count` (distinct tissues) and "
+                "`source_count` (distinct databases). Use these to rank genes: "
+                "1. Primary markers (3-10 genes): Genes with high consensus (e.g. source_count=2 AND tissue_count >= 3). "
+                "These are confirmed universally. "
+                "2. Secondary markers: Genes with lower consensus but still relevant. "
                 "Extract these into the respective primary and secondary lists. "
                 "Then, rewrite the natural language response to provide a minimal, high-level context explaining "
-                "why these specific markers are defining for the cell type(s). "
+                "why these specific markers are defining for the cell type(s). Include any suggestions about tissue "
+                "refinement if the agent mentioned them. "
                 "CRITICALLY: Do NOT list the actual gene names inline in your natural language response, "
                 "as they will be rendered as lists by the UI. Simply introduce the lists. "
                 "If no genes are mentioned, return empty lists and keep the response helpful.",
