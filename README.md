@@ -34,20 +34,9 @@ cd sc-bot
 uv sync
 ```
 
-### 3. Download Raw Data
+### 3. Initialize the Database
 sc-bot relies on PanglaoDB, CellMarker 2.0, and the Uberon ontology. 
-The marker databases (PanglaoDB and CellMarker 2.0) will be downloaded automatically during the database setup phase. You only need to manually download the Uberon ontology into the `data/raw/` directory:
-
-```bash
-# Create the raw data directory if it doesn't exist
-mkdir -p data/raw
-
-# Download Uberon ontology
-curl -L -o data/raw/uberon-full.json http://purl.obolibrary.org/obo/uberon/uberon-full.json
-```
-
-### 4. Initialize the Database
-Build the local SQLite database from the data sources using the orchestrator script. This will parse PanglaoDB, download and parse CellMarker 2.0, and map tissues and cell types to the ontology.
+You do not need to download these files manually. Build the local SQLite database using the orchestrator script, which will automatically download all necessary data sources, parse them, and map tissues and cell types to the ontology.
 
 ```bash
 uv run python scripts/setup_db.py
@@ -55,7 +44,7 @@ uv run python scripts/setup_db.py
 
 *Note: You can ingest specific databases using flags like `--panglao` or `--cellmarker2`, or preserve the schema while refreshing data with `--keep-schema`.*
 
-### 5. Configure API Key
+### 4. Configure API Key
 sc-bot requires a Google Gemini API key. Generate a key from Google AI Studio.
 Create a `.env` file in the project directory:
 ```bash
@@ -63,7 +52,7 @@ echo "GOOGLE_API_KEY=" > .env
 ```
 *Open the `.env` file in a text editor (e.g., nano, vim, or VS Code) and append your API key after the equals sign.*
 
-### 6. Run sc-bot
+### 5. Run sc-bot
 Launch the interactive terminal UI:
 ```bash
 uv run sc-bot

@@ -1,9 +1,32 @@
 import json
 import os
 import sqlite3
+import urllib.request
 from typing import Tuple
 
 from rapidfuzz import fuzz, process
+
+
+def download_uberon(dest: str) -> None:
+    """
+    Downloads the UBERON ontology JSON if it does not already exist.
+    """
+    if os.path.exists(dest):
+        print("UBERON ontology data already exists.")
+        return
+
+    url = "http://purl.obolibrary.org/obo/uberon/uberon-full.json"
+
+    print(f"Downloading UBERON ontology from {url}...")
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+
+    try:
+        urllib.request.urlretrieve(url, dest)
+        print("Download complete.")
+    except Exception as e:
+        if os.path.exists(dest):
+            os.remove(dest)
+        raise RuntimeError(f"Failed to download UBERON ontology data: {e}")
 
 
 def create_schema(cursor: sqlite3.Cursor) -> None:
@@ -95,9 +118,12 @@ def load_ontology(cursor: sqlite3.Cursor, skip_db_write: bool = False) -> Tuple[
     Returns:
         tuple[dict, dict, list]: A tuple containing lbl_to_id, id_to_lbl, and choices.
     """
-    print("Loading UBERON ontology...")
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     json_path = os.path.join(base_dir, "data", "raw", "uberon-full.json")
+
+    download_uberon(json_path)
+
+    print("Loading UBERON ontology...")
     with open(json_path, "r", encoding="utf-8") as f:
         ontology_data = json.load(f)
 
