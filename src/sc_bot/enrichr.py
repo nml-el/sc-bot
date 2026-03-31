@@ -64,7 +64,7 @@ class Enrichr:
             pval_cutoff: Optional unadjusted p-value cutoff to filter enrichment results.
             adj_pval_cutoff: Optional adjusted p-value cutoff to filter enrichment results.
             description: Optional description of the gene list.
-        Errors:
+        Raises:
             ValueError: If the gene list is empty or submission fails.
         """
 
@@ -93,7 +93,7 @@ class Enrichr:
         Args:
             gene_list: List of gene symbols to analyze.
             description: Optional description of the gene list.
-        Errors:
+        Raises:
             ValueError: If the gene list is empty or submission fails.
         Returns:
             user_list_id: Unique identifier for the submitted gene list.
@@ -129,7 +129,7 @@ class Enrichr:
             sort_order: Column name to sort the results by.
         Returns:
             A DataFrame containing the enrichment results.
-        Errors:
+        Raises:
             Exception: If the request fails or if the results cannot be formatted.
         """
         if gene_set not in self.get_valid_libraries():
@@ -162,7 +162,7 @@ class Enrichr:
             sort_order: Column name or list of column names to sort the results by.
         Returns:
             A DataFrame containing the formatted enrichment results.
-        Errors:
+        Raises:
             KeyError: If the specified sort order is not found in the results.
         """
         cols = [
@@ -210,7 +210,7 @@ class Enrichr:
             sort_order: Column name to sort the results by.
         Returns:
             A DataFrame containing the combined enrichment results for all gene sets.
-        Errors:
+        Raises:
             ValueError: If the gene sets are empty or invalid.
         """
         if gene_sets is None:
@@ -243,7 +243,7 @@ class Enrichr:
             gene_set: The gene set library to load.
         Returns:
             A dictionary containing the gene set library.
-        Errors:
+        Raises:
             Exception: If the request fails or if the results cannot be formatted.
         """
         url = Enrichr.enrichr_url + "geneSetLibrary"
@@ -278,7 +278,7 @@ class Enrichr:
 
         Returns:
             A set of valid library names.
-        Errors:
+        Raises:
             Exception: If the request fails or if the results cannot be formatted.
         """
         if cls._valid_libraries is None:
@@ -295,7 +295,7 @@ class Enrichr:
 
         Returns:
             A dictionary containing the library statistics and categories.
-        Errors:
+        Raises:
             Exception: If the request fails or if the results cannot be formatted.
         """
         url = Enrichr.enrichr_url + "datasetStatistics"
@@ -317,7 +317,7 @@ class Enrichr:
             category: Optional category to filter the libraries.
         Returns:
             A DataFrame containing the filtered library information.
-        Errors:
+        Raises:
             ValueError: If the provided category is invalid or if no libraries match the name.
         """
 

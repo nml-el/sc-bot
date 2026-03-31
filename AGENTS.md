@@ -35,7 +35,7 @@ We strictly enforce coding standards using `ruff`.
 - **Line Length Limit:** We use a **120-character** line limit instead of the traditional 80 characters.
   *(Note: This should be reflected in the `pyproject.toml` configuration under `[tool.ruff]` with `line-length = 120`)*.
 - **Type Hints:** **ALWAYS** use complete type hints in all function definitions for both arguments and return types.
-- **Docstrings:** All functions must include descriptive docstrings detailing what the function does, an `Args` section, a `Returns` section, and an `Errors` section if applicable.
+- **Docstrings:** All functions must include descriptive docstrings detailing what the function does, an `Args` section, a `Returns` section, and an `Raises` section if applicable.
 - **Agent Tools:** When writing tools for the agent, the docstring must also include an `Example` section demonstrating `Input` and `Output`.
 
 **Example of expected function style:**
@@ -52,7 +52,7 @@ def format_greeting(name: str, greeting_prefix: str = "Hello", repeat_count: int
     Returns:
         list[str]: A list containing the formatted greeting strings.
         
-    Errors:
+    Raises:
         ValueError: If repeat_count is less than 0.
         
     Example:
