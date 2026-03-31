@@ -36,15 +36,11 @@ uv sync
 
 ### 3. Download Raw Data
 sc-bot relies on PanglaoDB, CellMarker 2.0, and the Uberon ontology. 
-PanglaoDB and Uberon must be downloaded manually into the `data/raw/` directory, while CellMarker 2.0 is downloaded automatically during database setup.
+The marker databases (PanglaoDB and CellMarker 2.0) will be downloaded automatically during the database setup phase. You only need to manually download the Uberon ontology into the `data/raw/` directory:
 
 ```bash
 # Create the raw data directory if it doesn't exist
 mkdir -p data/raw
-
-# Download and unzip PanglaoDB markers
-curl -o data/raw/PanglaoDB_markers_27_Mar_2020.tsv.gz https://panglaodb.se/markers/PanglaoDB_markers_27_Mar_2020.tsv.gz
-gunzip data/raw/PanglaoDB_markers_27_Mar_2020.tsv.gz
 
 # Download Uberon ontology
 curl -L -o data/raw/uberon-full.json http://purl.obolibrary.org/obo/uberon/uberon-full.json

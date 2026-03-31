@@ -1,8 +1,39 @@
 import csv
+import gzip
 import os
+import shutil
 import sqlite3
+import urllib.request
 
 from utils import fuzzy_resolve
+
+
+def download_panglaodb(dest: str) -> None:
+    """
+    Downloads and extracts the PanglaoDB TSV dataset if it does not already exist.
+    """
+    if os.path.exists(dest):
+        print("PanglaoDB data already exists.")
+        return
+
+    url = "https://panglaodb.se/markers/PanglaoDB_markers_27_Mar_2020.tsv.gz"
+    gz_dest = dest + ".gz"
+
+    print(f"Downloading PanglaoDB data from {url}...")
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+
+    try:
+        urllib.request.urlretrieve(url, gz_dest)
+        print("Extracting PanglaoDB data...")
+        with gzip.open(gz_dest, "rb") as f_in:
+            with open(dest, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove(gz_dest)
+        print("Download and extraction complete.")
+    except Exception as e:
+        if os.path.exists(gz_dest):
+            os.remove(gz_dest)
+        raise RuntimeError(f"Failed to download/extract PanglaoDB data: {e}")
 
 
 def ingest_panglao(conn: sqlite3.Connection, lbl_to_id: dict, id_to_lbl: dict, choices: list) -> int:
@@ -26,16 +57,15 @@ def ingest_panglao(conn: sqlite3.Connection, lbl_to_id: dict, id_to_lbl: dict, c
 
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     tsv_filename = os.path.join(base_dir, "data", "raw", "PanglaoDB_markers_27_Mar_2020.tsv")
+
+    download_panglaodb(tsv_filename)
+
     data_to_insert = []
     mapping_cache = {}
 
     print("Parsing PanglaoDB and normalizing cell types...")
-    try:
-        file = open(tsv_filename, encoding="utf-8")
-    except FileNotFoundError:
-        raise FileNotFoundError(f"PanglaoDB TSV not found at {tsv_filename}. Run from project root or check data/raw/.")
 
-    with file:
+    with open(tsv_filename, encoding="utf-8") as file:
         tsv_reader = csv.DictReader(file, delimiter="\t")
 
         for row in tsv_reader:
