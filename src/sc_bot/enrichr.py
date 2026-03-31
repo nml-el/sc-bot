@@ -120,7 +120,7 @@ class Enrichr:
 
         return self.user_list_id
 
-    def get_enrichment(self, gene_set: str, sort_order: str = "adjusted p-value") -> pd.DataFrame:
+    def get_enrichment(self, gene_set: str, sort_order: str | List[str] = "adjusted p-value") -> pd.DataFrame:
         """
         Fetches enrichment results for a specific gene set.
 
@@ -199,7 +199,7 @@ class Enrichr:
         self,
         gene_sets: Iterable[str] | None = None,
         max_workers: int | None = None,
-        sort_order: str = "adjusted p-value",
+        sort_order: str | List[str] = "adjusted p-value",
     ) -> pd.DataFrame:
         """
         Runs enrichment analysis for multiple gene sets using multithreading.

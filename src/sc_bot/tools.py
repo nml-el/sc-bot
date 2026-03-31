@@ -330,7 +330,11 @@ def query_enrichr(genes: list[str], species: str = "Human") -> list[dict[str, An
 
     libraries = ENRICHR_HUMAN_LIBRARIES if species.lower() == "human" else ENRICHR_MOUSE_LIBRARIES
 
-    enrichr = Enrichr(gene_list=genes)
+    try:
+        enrichr = Enrichr(gene_list=genes)
+    except ValueError:
+        return []
+
     results_df = enrichr.get_cell_type_enrichment(gene_sets=libraries, max_workers=5)
 
     if results_df.empty:
