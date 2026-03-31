@@ -11,6 +11,7 @@ from sc_bot.tools import (
     get_markers_by_cell_type,
     get_cell_types_by_marker,
     get_tissues_for_cell_type,
+    query_enrichr,
 )
 
 
@@ -27,6 +28,7 @@ def create_ai_agent() -> CompiledStateGraph:
         get_markers_by_cell_type,
         get_cell_types_by_marker,
         get_tissues_for_cell_type,
+        query_enrichr,
     ]
 
     # Creates an agent graph that calls tools in a loop until a stopping condition is met.

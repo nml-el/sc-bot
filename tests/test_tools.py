@@ -84,3 +84,64 @@ def test_get_tissues_for_cell_type() -> None:
     # Both of these are PanglaoDB canonicals mapped from T cell entries
     assert "Blood" in tissues
     assert "Immune system" in tissues
+
+
+def test_query_enrichr_tool_structure(monkeypatch):
+    """
+    Test that the query_enrichr tool returns the expected format and structure
+    when given mocked Enrichr output.
+    """
+    from sc_bot.tools import query_enrichr
+    import pandas as pd
+
+    class MockEnrichr:
+        def __init__(self, gene_list, **kwargs):
+            self.gene_list = gene_list
+
+        def get_cell_type_enrichment(self, gene_sets, max_workers):
+            # Mock the raw DataFrame returned by Enrichr
+            data = [
+                {
+                    "term name": "T Cell",
+                    "adjusted p-value": 0.001,
+                    "combined score": 150.5,
+                    "overlapping genes": "['CD3D', 'CD3E']",
+                    "gene_set": "PanglaoDB_Augmented_2021",
+                },
+                {
+                    "term name": "T Cell",
+                    "adjusted p-value": 0.005,
+                    "combined score": 120.0,
+                    "overlapping genes": "['CD3D', 'CD8A']",
+                    "gene_set": "CellMarker_2024",
+                },
+                {
+                    "term name": "B Cell",
+                    "adjusted p-value": 0.05,
+                    "combined score": 50.0,
+                    "overlapping genes": "['CD19']",
+                    "gene_set": "CellMarker_2024",
+                },
+            ]
+            return pd.DataFrame(data)
+
+    monkeypatch.setattr("sc_bot.tools.Enrichr", MockEnrichr)
+
+    genes = ["CD3D", "CD3E", "CD8A", "CD19"]
+    result = query_enrichr.invoke({"genes": genes})
+
+    assert len(result) == 2  # Combined T Cell + B Cell
+
+    # Check that T Cell is first due to lower adjusted_p_value
+    t_cell = result[0]
+    assert t_cell["term_name"] == "T Cell"
+    assert t_cell["adjusted_p_value"] == 0.001  # Best across the group
+    assert t_cell["combined_score"] == 150.5  # Taken from the best row
+
+    # Overlapping genes should be unioned and returned as list
+    overlapping = set(t_cell["overlapping_genes"])
+    assert overlapping == {"CD3D", "CD3E", "CD8A"}
+
+    # Both gene sets should be included
+    gene_sets = set(t_cell["gene_sets"])
+    assert gene_sets == {"PanglaoDB_Augmented_2021", "CellMarker_2024"}

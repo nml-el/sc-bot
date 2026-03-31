@@ -1662,7 +1662,9 @@ dependencies = [
     { name = "langchain-community" },
     { name = "langchain-google-genai" },
     { name = "langgraph" },
+    { name = "pandas" },
     { name = "rapidfuzz" },
+    { name = "requests" },
     { name = "rich" },
     { name = "ruff" },
     { name = "textual" },
@@ -1671,7 +1673,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "openpyxl" },
-    { name = "pandas" },
     { name = "pytest" },
 ]
 
@@ -1681,7 +1682,9 @@ requires-dist = [
     { name = "langchain-community", specifier = ">=0.4.1" },
     { name = "langchain-google-genai", specifier = ">=4.2.1" },
     { name = "langgraph", specifier = ">=1.0.10" },
+    { name = "pandas", specifier = ">=3.0.1" },
     { name = "rapidfuzz", specifier = ">=3.14.3" },
+    { name = "requests", specifier = ">=2.32.5" },
     { name = "rich", specifier = ">=14.3.3" },
     { name = "ruff", specifier = ">=0.15.4" },
     { name = "textual", specifier = ">=8.1.1" },
@@ -1690,7 +1693,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "pandas", specifier = ">=3.0.1" },
     { name = "pytest", specifier = ">=9.0.2" },
 ]
 

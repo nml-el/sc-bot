@@ -1,9 +1,30 @@
 import sqlite3
 from functools import lru_cache
+from typing import Any
+
 from langchain_core.tools import tool
 from rapidfuzz import process, fuzz
+import ast
 
 from sc_bot.config import DB_PATH
+from sc_bot.enrichr import Enrichr
+
+ENRICHR_HUMAN_LIBRARIES = [
+    "CellMarker_2024",
+    "CellMarker_Augmented_2021",
+    "PanglaoDB_Augmented_2021",
+    "Azimuth_Cell_Types_2021",
+    "Azimuth_2023",
+    "Tabula_Sapiens",
+    "Human_Gene_Atlas",
+    "Descartes_Cell_Types_and_Tissue_2021",
+]
+
+ENRICHR_MOUSE_LIBRARIES = [
+    "Tabula_Muris",
+    "Mouse_Gene_Atlas",
+    "PanglaoDB_Augmented_2021",
+]
 
 
 def get_connection() -> sqlite3.Connection:
@@ -277,3 +298,70 @@ def get_cell_types_by_marker(marker_genes: list[str], species: str = "Human") ->
     conn.close()
 
     return [{"cell_type": row[0]} for row in rows]
+
+
+@tool
+def query_enrichr(genes: list[str], species: str = "Human") -> list[dict[str, Any]]:
+    """
+    Submits a list of marker genes to the external Enrichr API to infer plausible cell types.
+    This searches across multiple large external databases and returns the top 25 consensus matches.
+    Use this when the user provides a list of genes and wants to know what cell type they represent.
+
+    Args:
+        genes (list[str]): A list of gene symbols (e.g., ["CD3D", "CD3E", "CD8A"]).
+        species (str, optional): The species context. Valid options are "Human" or "Mouse". Defaults to "Human".
+
+    Returns:
+        list[dict]: Top 25 matching cell types, sorted by adjusted p-value.
+        Each dictionary contains:
+        - term_name (str): The inferred cell type name.
+        - adjusted_p_value (float): Statistical significance of the match.
+        - combined_score (float): Enrichr combined score (higher is better).
+        - overlapping_genes (list[str]): The subset of input genes that matched this cell type.
+        - gene_sets (list[str]): The libraries where this match was found.
+
+    Example:
+        Input: query_enrichr(["CD3D", "CD3E"], "Human")
+        Output: [{"term_name": "T Cell", "adjusted_p_value": 0.001, "combined_score": 150.5, "overlapping_genes": ["CD3D", "CD3E"], "gene_sets": ["Azimuth_2023"]}]
+    """
+    if not genes:
+        return []
+
+    libraries = ENRICHR_HUMAN_LIBRARIES if species.lower() == "human" else ENRICHR_MOUSE_LIBRARIES
+
+    enrichr = Enrichr(gene_list=genes)
+    results_df = enrichr.get_cell_type_enrichment(gene_sets=libraries, max_workers=5)
+
+    if results_df.empty:
+        return []
+
+    # Group by cell type term to aggregate across libraries
+    results_df["overlapping_genes_list"] = results_df["overlapping genes"].apply(
+        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
+    )
+
+    aggregated = []
+    for term, group in results_df.groupby("term name"):
+        # Take the best p-value and combined score for this term across libraries
+        best_row = group.loc[group["adjusted p-value"].idxmin()]
+
+        # Union the overlapping genes across all libraries that found this term
+        all_genes = set()
+        for genes_list in group["overlapping_genes_list"]:
+            all_genes.update(genes_list)
+
+        aggregated.append(
+            {
+                "term_name": term,
+                "adjusted_p_value": best_row["adjusted p-value"],
+                "combined_score": best_row["combined score"],
+                "overlapping_genes": list(all_genes),
+                "gene_sets": group["gene_set"].tolist(),
+            }
+        )
+
+    # Sort by adjusted p-value ascending, then combined score descending
+    aggregated.sort(key=lambda x: (x["adjusted_p_value"], -x["combined_score"]))
+
+    # Return top 25 consensus results
+    return aggregated[:25]
