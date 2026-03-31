@@ -4,7 +4,6 @@ from typing import Any
 
 from langchain_core.tools import tool
 from rapidfuzz import process, fuzz
-import ast
 
 from sc_bot.config import DB_PATH
 from sc_bot.enrichr import Enrichr
@@ -277,8 +276,10 @@ def get_cell_types_by_marker(marker_genes: list[str], species: str = "Human") ->
     conn = get_connection()
     cursor = conn.cursor()
 
-    placeholders = ",".join("?" for _ in marker_genes)
-    num_genes = len(marker_genes)
+    # Deduplicate and normalize marker genes case-insensitively
+    unique_genes = list({g.upper(): g for g in marker_genes}.values())
+    placeholders = ",".join("?" for _ in unique_genes)
+    num_genes = len(unique_genes)
 
     query = f"""
         SELECT m.cell_type
@@ -291,7 +292,7 @@ def get_cell_types_by_marker(marker_genes: list[str], species: str = "Human") ->
         HAVING COUNT(DISTINCT m.marker_gene COLLATE NOCASE) = ?
     """
 
-    params = tuple(marker_genes) + (species, num_genes)
+    params = tuple(unique_genes) + (species, num_genes)
 
     cursor.execute(query, params)
     rows = cursor.fetchall()
@@ -335,11 +336,6 @@ def query_enrichr(genes: list[str], species: str = "Human") -> list[dict[str, An
     if results_df.empty:
         return []
 
-    # Group by cell type term to aggregate across libraries
-    results_df["overlapping_genes_list"] = results_df["overlapping genes"].apply(
-        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
-    )
-
     aggregated = []
     for term, group in results_df.groupby("term name"):
         # Take the best p-value and combined score for this term across libraries
@@ -347,7 +343,7 @@ def query_enrichr(genes: list[str], species: str = "Human") -> list[dict[str, An
 
         # Union the overlapping genes across all libraries that found this term
         all_genes = set()
-        for genes_list in group["overlapping_genes_list"]:
+        for genes_list in group["overlapping genes"]:
             all_genes.update(genes_list)
 
         aggregated.append(

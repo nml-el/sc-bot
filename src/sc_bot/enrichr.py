@@ -100,13 +100,14 @@ class Enrichr:
         """
         url = Enrichr.enrichr_url + "addList"
 
-        if self.gene_list:
+        filtered_genes = self.get_gene_list()
+        if filtered_genes:
             payload = {
-                "list": (None, "\n".join(self.get_gene_list())),
+                "list": (None, "\n".join(filtered_genes)),
                 "description": (None, self.description),
             }
         else:
-            raise ValueError("Empty gene list")
+            raise ValueError("Empty gene list or all genes were invalid")
 
         response = requests.post(url, files=payload, verify=True)
         if not response.ok:
@@ -182,7 +183,14 @@ class Enrichr:
             df = df[df["adjusted p-value"] <= self.adj_pval_cutoff]
         elif self.pval_cutoff:
             df = df[df["p-value"] <= self.pval_cutoff]
-        if sort_order in df.columns:
+
+        # Check if sort_order is valid depending on whether it's a string or list
+        if isinstance(sort_order, str):
+            is_valid_sort = sort_order in df.columns
+        else:
+            is_valid_sort = set(sort_order).issubset(df.columns)
+
+        if is_valid_sort:
             return df.sort_values(by=sort_order).drop("rank", axis=1)  # type: ignore
         else:
             raise KeyError(f"{sort_order} not found")
