@@ -389,6 +389,10 @@ def get_cell_types_by_marker(marker_genes: list[str], species: str = "Human") ->
     cursor = conn.cursor()
 
     gene_groups = _expand_gene_groups(marker_genes, species)
+    if not gene_groups:
+        conn.close()
+        return []
+
     flat_genes = sorted({gene for group in gene_groups for gene in group})
     placeholders = ",".join("?" for _ in flat_genes)
     num_groups = len(gene_groups)

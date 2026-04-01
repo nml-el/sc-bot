@@ -46,6 +46,7 @@ def ingest_cellmarker2(conn: sqlite3.Connection, lbl_to_id: dict, id_to_lbl: dic
 
     cursor = conn.cursor()
     source_name = "CellMarker2"
+    cursor.execute("DELETE FROM gene_aliases WHERE source = ?", (source_name,))
 
     print("Parsing CellMarker2 and normalizing cell types...")
     df = pd.read_excel(excel_path, usecols=["species", "cancer_type", "tissue_type", "cell_name", "marker", "Symbol"])

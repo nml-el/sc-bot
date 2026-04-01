@@ -54,6 +54,7 @@ def ingest_panglao(conn: sqlite3.Connection, lbl_to_id: dict, id_to_lbl: dict, c
 
     # Delete existing PanglaoDB rows
     cursor.execute("DELETE FROM cell_markers WHERE source = ?", (source_name,))
+    cursor.execute("DELETE FROM gene_aliases WHERE source = ?", (source_name,))
 
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     tsv_filename = os.path.join(base_dir, "data", "raw", "PanglaoDB_markers_27_Mar_2020.tsv")
