@@ -14,6 +14,7 @@ Set Margin 20
 Type "uv run sc-bot"
 Enter
 Sleep 3s
+Sleep 3s
 
 # Ask a biology question
 Type "What are the key marker genes for exhausted CD8+ T cells?"

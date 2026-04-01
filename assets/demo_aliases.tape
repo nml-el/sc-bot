@@ -14,6 +14,7 @@ Set Margin 20
 Type "uv run sc-bot"
 Enter
 Sleep 3s
+Sleep 3s
 
 # Ask about gene aliases
 Type "For human genes, what are the aliases for CD16 and CD161?"

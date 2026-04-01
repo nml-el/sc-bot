@@ -14,6 +14,7 @@ Set Margin 20
 Type "uv run sc-bot"
 Enter
 Sleep 3s
+Sleep 3s
 
 # Ask for cell type inference from a gene list
 Type "What cell type do these genes suggest: ['CD79B', 'VPREB3', 'CD74', 'CD79A', 'FCER2', 'TCL1A', 'BANK1']"
