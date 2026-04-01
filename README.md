@@ -71,7 +71,7 @@ Explore core sc-bot workflows through short GIF walkthroughs.
 
 ### Reverse Cell Typing From a Gene List
 
-This workflow starts from a marker panel and infers the most likely cell identity.
+This workflow starts from a marker panel and uses enrichment-guided reasoning to infer the most likely cell identity.
 
 ![sc-bot gene list demo](assets/demo_gene_list.gif)
 

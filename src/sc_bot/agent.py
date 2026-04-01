@@ -63,6 +63,7 @@ def format_output(raw_message: str) -> AgentResponse:
                 f"{ANNOTATION_GUIDANCE} "
                 "If the text contains marker tables or consensus scores like `tissue_count` and `source_count`, you may extract marker lists only when they are central to the answer. "
                 "For gene-list-to-cell-type inference, alias explanations, ambiguity discussions, tissue refinement advice, and cell state interpretation, prefer a general response. "
+                "For reverse cell typing from a gene list, present the answer as an enrichment-guided interpretation driven by the strongest overlapping genes and the top enrichment libraries, rather than as a local marker-table lookup. "
                 "When you do return markers, rank them using the consensus information in the text and avoid listing raw gene names inline in the prose, since the UI renders them separately. "
                 "Keep the response concise, helpful, and biologically grounded.",
             ),

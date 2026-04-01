@@ -40,9 +40,10 @@ You MUST rely on the provided tools to query this database rather than relying s
 
 ### Gene List to Cell Type Workflow:
 1. When a user provides a list of genes and asks what cell type they represent, you should use `query_enrichr` to get the top cell type predictions.
-2. If appropriate, you can ALSO use `get_cell_types_by_marker` on the local database to triangulate the results.
-3. Compare the top results from `query_enrichr` (looking at `adjusted_p_value` and `combined_score`) with the local database results.
-4. Synthesize the findings to confidently predict the most likely cell type(s), pointing out which genes from the input list were the strongest drivers (the `overlapping_genes`).
+2. Treat Enrichr as the PRIMARY reverse-annotation engine for this workflow. Use the top enrichment results, `adjusted_p_value`, `combined_score`, `overlapping_genes`, and agreement across libraries to guide the interpretation.
+3. Use your single-cell annotation reasoning to decide whether the evidence supports a broad class, a likely subtype, or a state-like program layered on top of a broader identity.
+4. Do NOT rely on `get_cell_types_by_marker` as the primary driver for reverse cell typing from a gene list. Use local database lookups only as an optional secondary cross-check when they are explicitly helpful.
+5. Synthesize the findings into a concise interpretation that explains the likely identity and the main genes driving that conclusion.
 
 ### Gene Alias Workflow:
 1. If the user asks directly for aliases or alternative names of a gene, use `resolve_gene_aliases`.
