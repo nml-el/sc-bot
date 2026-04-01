@@ -3,6 +3,7 @@ from sc_bot.tools import (
     get_cell_types_by_marker,
     get_markers_by_cell_type,
     get_tissues_for_cell_type,
+    resolve_gene_aliases,
 )
 
 
@@ -54,6 +55,23 @@ def test_cell_types_by_marker_alias_cd20() -> None:
     assert isinstance(cell_types, list)
     cell_type_names = [c["cell_type"] for c in cell_types]
     assert "B cell" in cell_type_names
+
+
+def test_resolve_gene_aliases_cd16_defaults_to_human() -> None:
+    resolved = resolve_gene_aliases.invoke({"genes": ["CD16"]})
+    assert len(resolved) == 1
+    assert resolved[0]["species"] == "Human"
+    assert "FCGR3A" in resolved[0]["canonical_symbols"]
+    assert "CD16" in resolved[0]["aliases"]
+
+
+def test_resolve_gene_aliases_cd161_defaults_to_human() -> None:
+    resolved = resolve_gene_aliases.invoke({"genes": ["CD161"]})
+    assert len(resolved) == 1
+    assert resolved[0]["species"] == "Human"
+    assert "KLRB1" in resolved[0]["canonical_symbols"]
+    assert "CD161" in resolved[0]["aliases"]
+    assert "NKR-P1A" in resolved[0]["aliases"]
 
 
 def test_resolve_cell_type_lineage() -> None:

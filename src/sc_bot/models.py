@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -6,14 +8,19 @@ class AgentResponse(BaseModel):
     Schema for parsing the final output of the AI agent.
     """
 
+    response_type: Literal["general", "markers"] = Field(
+        description="Whether the response is a general conversational answer or a marker-centric answer.",
+        default="general",
+    )
+
     response: str = Field(
-        description="The natural language context explaining the biological relevance of the primary and secondary markers to the requested cell type(s). Keep it minimal and highly relevant. MUST NOT contain the raw list of genes inline."
+        description="The final user-facing response. Keep it concise, helpful, and grounded in the tool outputs."
     )
     primary_markers: list[str] = Field(
-        description="A concise list of the most important, universally accepted canonical marker genes (usually 3-10 genes). Empty if no genes are found.",
+        description="Primary canonical marker genes when the response is marker-centric. Empty for general responses.",
         default_factory=list,
     )
     secondary_markers: list[str] = Field(
-        description="A small set of secondary or supportive marker genes. Empty if no secondary genes are found.",
+        description="Secondary/supportive marker genes when the response is marker-centric. Empty for general responses.",
         default_factory=list,
     )

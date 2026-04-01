@@ -4,6 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import create_agent
 
 from sc_bot.config import LLM_MODEL
+from sc_bot.annotation_guidance import ANNOTATION_GUIDANCE
 from sc_bot.system_prompt import SC_BOT_SYSTEM_PROMPT
 from sc_bot.models import AgentResponse
 from sc_bot.tools import (
@@ -12,6 +13,7 @@ from sc_bot.tools import (
     get_cell_types_by_marker,
     get_tissues_for_cell_type,
     query_enrichr,
+    resolve_gene_aliases,
 )
 
 
@@ -29,6 +31,7 @@ def create_ai_agent() -> CompiledStateGraph:
         get_cell_types_by_marker,
         get_tissues_for_cell_type,
         query_enrichr,
+        resolve_gene_aliases,
     ]
 
     # Creates an agent graph that calls tools in a loop until a stopping condition is met.
@@ -53,22 +56,15 @@ def format_output(raw_message: str) -> AgentResponse:
         [
             (
                 "system",
-                "You are an expert biological data extractor and assistant. "
-                "Your task is to take the provided text, which may contain a raw list of genes from a database, "
-                "and identify the most important, universally accepted canonical primary markers "
-                "and a small set of secondary/supportive markers. "
-                "The provided data often includes consensus scores: `tissue_count` (distinct tissues) and "
-                "`source_count` (distinct databases). Use these to rank genes: "
-                "1. Primary markers (3-10 genes): Genes with high consensus (e.g. source_count=2 AND tissue_count >= 3). "
-                "These are confirmed universally. "
-                "2. Secondary markers: Genes with lower consensus but still relevant. "
-                "Extract these into the respective primary and secondary lists. "
-                "Then, rewrite the natural language response to provide a minimal, high-level context explaining "
-                "why these specific markers are defining for the cell type(s). Include any suggestions about tissue "
-                "refinement if the agent mentioned them. "
-                "CRITICALLY: Do NOT list the actual gene names inline in your natural language response, "
-                "as they will be rendered as lists by the UI. Simply introduce the lists. "
-                "If no genes are mentioned, return empty lists and keep the response helpful.",
+                "You are an expert single-cell annotation assistant that converts raw agent outputs into a structured response. "
+                "Default to a GENERAL conversational answer unless the user explicitly asked for marker genes or the answer is clearly marker-centric. "
+                "Only return `response_type='markers'` when the primary deliverable is a marker list. Otherwise return `response_type='general'` and leave marker lists empty. "
+                "Use these principles when interpreting the message: "
+                f"{ANNOTATION_GUIDANCE} "
+                "If the text contains marker tables or consensus scores like `tissue_count` and `source_count`, you may extract marker lists only when they are central to the answer. "
+                "For gene-list-to-cell-type inference, alias explanations, ambiguity discussions, tissue refinement advice, and cell state interpretation, prefer a general response. "
+                "When you do return markers, rank them using the consensus information in the text and avoid listing raw gene names inline in the prose, since the UI renders them separately. "
+                "Keep the response concise, helpful, and biologically grounded.",
             ),
             ("human", "{text}"),
         ]
@@ -81,4 +77,4 @@ def format_output(raw_message: str) -> AgentResponse:
         return result
     else:
         # Fallback if the structured LLM fails to return the exact type
-        return AgentResponse(response=raw_message, primary_markers=[], secondary_markers=[])
+        return AgentResponse(response_type="general", response=raw_message, primary_markers=[], secondary_markers=[])

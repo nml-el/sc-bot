@@ -315,7 +315,9 @@ class ScBotApp(App):
         copy_actions = None
         copy_all_text = None
 
-        if response_data.primary_markers or response_data.secondary_markers:
+        if response_data.response_type == "markers" and (
+            response_data.primary_markers or response_data.secondary_markers
+        ):
             copy_actions = {}
             combined_markers = {}
 

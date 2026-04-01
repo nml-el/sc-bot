@@ -139,6 +139,90 @@ def _expand_gene_groups(marker_genes: list[str], species: str) -> list[list[str]
     return groups
 
 
+@tool
+def resolve_gene_aliases(genes: list[str], species: str = "Human") -> list[dict[str, Any]]:
+    """
+    Returns canonical symbols and known aliases for the requested genes.
+
+    Args:
+        genes (list[str]): Gene symbols or paper aliases to resolve.
+        species (str, optional): Species context for the alias lookup. Defaults to "Human".
+
+    Returns:
+        list[dict[str, Any]]: Alias resolution records including canonical symbols and aliases.
+
+    Example:
+        Input: resolve_gene_aliases(["CD161"])
+        Output: [{"input_gene": "CD161", "species": "Human", "canonical_symbols": ["KLRB1"], "aliases": ["CD161", "NKR-P1A"]}]
+    """
+    if not genes:
+        return []
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    results: list[dict[str, Any]] = []
+    species_name = species.strip().lower()
+
+    for gene in genes:
+        gene_upper = gene.strip().upper()
+        if not gene_upper:
+            continue
+
+        canonical_symbols: set[str] = set()
+        aliases: set[str] = {gene_upper}
+
+        cursor.execute(
+            """
+            SELECT DISTINCT ga.canonical_symbol
+            FROM gene_aliases ga
+            JOIN species s ON ga.species_id = s.id
+            WHERE s.name COLLATE NOCASE = ?
+              AND (
+                ga.alias COLLATE NOCASE = ?
+                OR ga.canonical_symbol COLLATE NOCASE = ?
+              )
+            """,
+            (species_name, gene_upper, gene_upper),
+        )
+        canonical_rows = cursor.fetchall()
+        for (canonical_symbol,) in canonical_rows:
+            canonical_clean = canonical_symbol.strip().upper()
+            if canonical_clean and canonical_clean != "NA":
+                canonical_symbols.add(canonical_clean)
+
+        if not canonical_symbols:
+            canonical_symbols.add(gene_upper)
+
+        for canonical_symbol in canonical_symbols:
+            cursor.execute(
+                """
+                SELECT DISTINCT ga.alias
+                FROM gene_aliases ga
+                JOIN species s ON ga.species_id = s.id
+                WHERE s.name COLLATE NOCASE = ?
+                  AND ga.canonical_symbol COLLATE NOCASE = ?
+                ORDER BY ga.alias
+                """,
+                (species_name, canonical_symbol),
+            )
+            for (alias,) in cursor.fetchall():
+                alias_clean = alias.strip().upper()
+                if alias_clean and alias_clean != "NA":
+                    aliases.add(alias_clean)
+
+        results.append(
+            {
+                "input_gene": gene_upper,
+                "species": species.title(),
+                "canonical_symbols": sorted(canonical_symbols),
+                "aliases": sorted(aliases),
+            }
+        )
+
+    conn.close()
+    return results
+
+
 @lru_cache(maxsize=128)
 def resolve_cell_type(query: str) -> str:
     """
