@@ -1,4 +1,7 @@
 species,cell_type,tissue,marker_gene,gene_aliases,source
-Human,Natural killer cell,Blood,KLRB1,CD161|NKR-P1A,custom-source
-Human,B cell,Blood,MS4A1,CD20,custom-source
-Mouse,Natural killer cell,Spleen,Klrb1c,CD161,custom-source
+Human,Natural killer cell,Blood,KLRB1,CD161|NKR-P1A,lab-flow-panel
+Human,Plasma cell,Bone marrow,SDC1,CD138,lab-flow-panel
+Human,CD8+ T cell,Blood,CD8A,,in-house-rnaseq
+Human,Epithelial cell,Lung,EPCAM,,
+Mouse,Regulatory T cell,Spleen,Foxp3,,in-house-rnaseq
+Mouse,B cell,Bone marrow,Ms4a1,CD20,
