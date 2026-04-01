@@ -141,6 +141,12 @@ All data is stored locally in `~/.sc-bot/sc_markers.db` after setup.
 *   **Interface:** Textual.
 *   **Offline Data:** Local SQLite database (`~/.sc-bot/sc_markers.db`) mapped by Python scripts from PanglaoDB and CellMarker 2.0.
 
+---
+
+## License
+
+This project is released under the MIT License. See `LICENSE` for the full text.
+
 ### Development Commands
 *   Lint and auto-fix: `uv run ruff check --fix .`
 *   Run tests: `uv run pytest`
