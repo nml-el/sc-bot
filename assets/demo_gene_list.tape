@@ -17,7 +17,7 @@ Sleep 3s
 Sleep 3s
 
 # Ask for cell type inference from a gene list
-Type "What cell type do these genes suggest: ['CD79B', 'VPREB3', 'CD74', 'CD79A', 'FCER2', 'TCL1A', 'BANK1']"
+Type "What cell type do these genes suggest: CD79B, VPREB3, CD74, CD79A, FCER2, TCL1A, BANK1, HVCN1, LY86"
 Enter
 Sleep 12s
 
