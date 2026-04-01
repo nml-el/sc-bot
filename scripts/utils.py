@@ -44,6 +44,8 @@ def create_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute("DROP TABLE IF EXISTS ontology_nodes")
     cursor.execute("DROP TABLE IF EXISTS ontology_synonyms")
     cursor.execute("DROP TABLE IF EXISTS ontology_edges")
+    cursor.execute("DROP TABLE IF EXISTS gene_aliases")
+    cursor.execute("DROP TABLE IF EXISTS gene_aliases")
 
     # Create species table
     cursor.execute("""
@@ -78,6 +80,18 @@ def create_schema(cursor: sqlite3.Cursor) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
             canonical_tissue TEXT
+        )
+    """)
+
+    # Create gene_aliases table
+    cursor.execute("""
+        CREATE TABLE gene_aliases (
+            species_id INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            canonical_symbol TEXT NOT NULL,
+            alias TEXT NOT NULL,
+            UNIQUE(canonical_symbol, alias COLLATE NOCASE, species_id, source),
+            FOREIGN KEY(species_id) REFERENCES species(id)
         )
     """)
 
@@ -170,6 +184,28 @@ def load_ontology(cursor: sqlite3.Cursor, skip_db_write: bool = False) -> Tuple[
 
     choices = list(lbl_to_id.keys())
     return lbl_to_id, id_to_lbl, choices
+
+
+def get_gene_alias_weight(cursor: sqlite3.Cursor, canonical_symbol: str, species_id: int | None = None) -> int:
+    """
+    Returns a weight boost for custom marker genes.
+
+    Args:
+        cursor (sqlite3.Cursor): SQLite cursor.
+        canonical_symbol (str): Canonical gene symbol.
+        species_id (int | None, optional): Species filter.
+
+    Returns:
+        int: Weight boost for custom-sourced aliases.
+    """
+    query = "SELECT COUNT(*) FROM gene_aliases WHERE canonical_symbol COLLATE NOCASE = ? AND source = 'custom-source'"
+    params = [canonical_symbol]
+    if species_id is not None:
+        query += " AND species_id = ?"
+        params.append(species_id)
+
+    cursor.execute(query, tuple(params))
+    return int(cursor.fetchone()[0])
 
 
 def normalize_cell_name(name: str) -> str:

@@ -60,6 +60,35 @@ uv run sc-bot
 
 ---
 
+## Contributing
+
+### Add your own marker CSV
+
+You can extend sc-bot with your own marker table by placing a CSV file at `~/.sc-bot/marker_data.csv`. If that file exists, sc-bot will automatically refresh it on launch as long as the main database has already been initialized.
+
+Required columns:
+- `species` (`Human` or `Mouse`)
+- `cell_type`
+- `tissue`
+- `marker_gene`
+
+Optional columns:
+- `gene_aliases` - pipe-delimited aliases like `CD161|NKR-P1A`
+- `source` - source label for the row; defaults to `custom-source`
+
+Example:
+
+```csv
+species,cell_type,tissue,marker_gene,gene_aliases
+Human,Natural killer cell,Blood,KLRB1,CD161|NKR-P1A
+Human,B cell,Blood,MS4A1,CD20
+Mouse,Natural killer cell,Spleen,Klrb1c,CD161
+```
+
+Your personal markers are prioritized during ranking, so user-supplied evidence is surfaced before equally supported public markers.
+
+---
+
 ## Features
 
 *   **Multi-Source Marker Querying:** Retrieve canonical and supportive marker genes for specific cell types from multiple integrated databases (PanglaoDB + CellMarker 2.0).

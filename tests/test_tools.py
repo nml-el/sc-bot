@@ -86,6 +86,46 @@ def test_get_tissues_for_cell_type() -> None:
     assert "Immune system" in tissues
 
 
+def test_custom_source_priority_field() -> None:
+    markers = get_markers_by_cell_type.invoke({"cell_types": ["B cell"], "species": "Human"})
+    assert isinstance(markers, list)
+    assert len(markers) > 0
+    assert "custom_source_count" in markers[0]
+
+
+def test_marker_csv_ingestion(tmp_path) -> None:
+    import sqlite3
+    import os
+    import sys
+
+    sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
+
+    from ingest_marker_csv import ingest_marker_csv
+    from utils import create_schema, load_ontology
+
+    csv_path = tmp_path / "marker_data.csv"
+    csv_path.write_text(
+        """species,cell_type,tissue,marker_gene,gene_aliases,source
+Human,B cell,Blood,MS4A1,CD20,custom-source
+""",
+        encoding="utf-8",
+    )
+
+    conn = sqlite3.connect(":memory:")
+    cursor = conn.cursor()
+    create_schema(cursor)
+    lbl_to_id, id_to_lbl, choices = load_ontology(cursor, skip_db_write=True)
+
+    rows = ingest_marker_csv(conn, str(csv_path), lbl_to_id, id_to_lbl, choices, default_source="custom-source")
+    assert rows == 1
+
+    cursor.execute("SELECT marker_gene FROM cell_markers WHERE source = 'custom-source'")
+    assert cursor.fetchone()[0] == "MS4A1"
+
+    cursor.execute("SELECT alias FROM gene_aliases WHERE canonical_symbol = 'MS4A1'")
+    assert cursor.fetchone()[0] == "CD20"
+
+
 def test_query_enrichr_tool_structure(monkeypatch):
     """
     Test that the query_enrichr tool returns the expected format and structure

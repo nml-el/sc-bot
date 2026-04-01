@@ -10,6 +10,10 @@ SC_BOT_DIR = Path.home() / ".sc-bot"
 # Database configuration
 DB_PATH = SC_BOT_DIR / "sc_markers.db"
 
+# Personal marker CSV configuration
+MARKER_CSV_PATH = SC_BOT_DIR / "marker_data.csv"
+DEFAULT_MARKER_SOURCE = "custom-source"
+
 # Logs configuration
 LOGS_DIR = SC_BOT_DIR / "logs"
 

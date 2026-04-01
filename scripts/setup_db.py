@@ -8,6 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from ingest_cellmarker2 import ingest_cellmarker2
+from ingest_marker_csv import ingest_marker_csv
 from ingest_panglao import ingest_panglao
 from utils import create_schema, load_ontology
 from sc_bot.config import DB_PATH
@@ -22,6 +23,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Setup SQLite database and ingest data sources.")
     parser.add_argument("--panglao", action="store_true", help="Ingest PanglaoDB data")
     parser.add_argument("--cellmarker2", action="store_true", help="Ingest CellMarker2 data")
+    parser.add_argument("--marker-csv", type=str, default=None, help="Ingest a personal marker CSV file")
+    parser.add_argument(
+        "--marker-source", type=str, default="custom-source", help="Source label for the personal marker CSV"
+    )
     parser.add_argument("--keep-schema", action="store_true", help="Refresh source data without dropping the schema")
 
     args = parser.parse_args()
@@ -47,6 +52,14 @@ def main() -> int:
 
         if args.cellmarker2:
             ingest_cellmarker2(conn, lbl_to_id, id_to_lbl, choices)
+
+        if args.marker_csv:
+            if os.path.exists(args.marker_csv):
+                ingest_marker_csv(
+                    conn, args.marker_csv, lbl_to_id, id_to_lbl, choices, default_source=args.marker_source
+                )
+            else:
+                print(f"Skipping marker CSV import; file not found at {args.marker_csv}")
 
         conn.commit()
         print("Database setup complete.")

@@ -236,25 +236,34 @@ def get_markers_by_cell_type(
     params.append(num_types)
 
     query = f"""
-        SELECT m.marker_gene, 
+        SELECT m.marker_gene,
                COUNT(DISTINCT m.tissue) as tissue_count,
-               COUNT(DISTINCT m.source) as source_count
+               COUNT(DISTINCT m.source) as source_count,
+               SUM(CASE WHEN m.source = 'custom-source' THEN 1 ELSE 0 END) as custom_source_count
         FROM cell_markers m
         JOIN species s ON m.species_id = s.id
         WHERE m.cell_type COLLATE NOCASE IN ({ct_placeholders})
           AND s.name COLLATE NOCASE = ?
           AND m.marker_gene != 'nan'
           {tissue_clause}
-        GROUP BY m.marker_gene 
+        GROUP BY m.marker_gene
         HAVING COUNT(DISTINCT m.cell_type COLLATE NOCASE) = ?
-        ORDER BY source_count DESC, tissue_count DESC
+        ORDER BY custom_source_count DESC, source_count DESC, tissue_count DESC
     """
 
     cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     conn.close()
 
-    return [{"marker_gene": row[0], "tissue_count": row[1], "source_count": row[2]} for row in rows]
+    return [
+        {
+            "marker_gene": row[0],
+            "tissue_count": row[1],
+            "source_count": row[2],
+            "custom_source_count": row[3],
+        }
+        for row in rows
+    ]
 
 
 @tool
