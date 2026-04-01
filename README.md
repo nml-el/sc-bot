@@ -11,7 +11,7 @@
 
 **sc-bot** is a terminal-based conversational interface for single-cell biology. It helps you identify cell types from marker genes, retrieve markers for known populations, resolve paper-style aliases, and work against a local multi-source marker database from the command line.
 
-![sc-bot gene list demo](assets/demo_gene_list.gif)
+![sc-bot exhausted cd8 demo](assets/demo_exhausted_cd8.gif)
 
 - Infer likely cell types from marker gene panels
 - Query markers for known cell states and tissues
@@ -65,7 +65,9 @@ uv run sc-bot
 
 ---
 
-## Demo Gallery
+## Feature Showcase
+
+Explore core sc-bot workflows through short GIF walkthroughs.
 
 ### Reverse Cell Typing From a Gene List
 
@@ -78,12 +80,6 @@ This workflow starts from a marker panel and infers the most likely cell identit
 This workflow translates paper-style names like `CD16` and `CD161` into the internal canonical symbols used by the database.
 
 ![sc-bot alias demo](assets/demo_aliases.gif)
-
-### Retrieve Markers for a Known Cell State
-
-This workflow starts from a known biological population and returns informative markers.
-
-![sc-bot exhausted cd8 demo](assets/demo_exhausted_cd8.gif)
 
 ---
 

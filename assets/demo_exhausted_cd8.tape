@@ -18,7 +18,7 @@ Sleep 3s
 # Ask a biology question
 Type "What are the key marker genes for exhausted CD8+ T cells?"
 Enter
-Sleep 8s
+Sleep 11s
 
 # Exit gracefully
 Ctrl+C

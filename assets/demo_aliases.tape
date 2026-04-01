@@ -18,7 +18,7 @@ Sleep 3s
 # Ask about gene aliases
 Type "For human genes, what are the aliases for CD16 and CD161?"
 Enter
-Sleep 8s
+Sleep 10s
 
 # Exit gracefully
 Ctrl+C

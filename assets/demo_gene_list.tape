@@ -18,7 +18,7 @@ Sleep 3s
 # Ask for cell type inference from a gene list
 Type "What cell type do these genes suggest: ['CD79B', 'VPREB3', 'CD74', 'CD79A', 'FCER2', 'TCL1A', 'BANK1']"
 Enter
-Sleep 9s
+Sleep 12s
 
 # Exit gracefully
 Ctrl+C
