@@ -1,0 +1,4 @@
+species,cell_type,tissue,marker_gene,gene_aliases,source
+Human,Natural killer cell,Blood,KLRB1,CD161|NKR-P1A,custom-source
+Human,B cell,Blood,MS4A1,CD20,custom-source
+Mouse,Natural killer cell,Spleen,Klrb1c,CD161,custom-source

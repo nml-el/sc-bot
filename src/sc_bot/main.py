@@ -33,6 +33,7 @@ def _maybe_import_marker_csv() -> None:
             conn, str(MARKER_CSV_PATH), lbl_to_id, id_to_lbl, choices, default_source=DEFAULT_MARKER_SOURCE
         )
         conn.commit()
+        print(f"Loaded personal marker CSV from {MARKER_CSV_PATH}")
     finally:
         conn.close()
 

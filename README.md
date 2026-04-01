@@ -64,7 +64,7 @@ uv run sc-bot
 
 ### Add your own marker CSV
 
-You can extend sc-bot with your own marker table by placing a CSV file at `~/.sc-bot/marker_data.csv`. If that file exists, sc-bot will automatically refresh it on launch as long as the main database has already been initialized.
+You can extend sc-bot with your own marker table by placing a CSV file at `~/.sc-bot/marker_data.csv` (see `marker_data.sample.csv` in the repo). If that file exists, sc-bot will automatically refresh it on launch as long as the main database has already been initialized.
 
 Required columns:
 - `species` (`Human` or `Mouse`)
