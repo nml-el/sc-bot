@@ -39,7 +39,7 @@ def _maybe_import_marker_csv() -> None:
 
 
 def main() -> None:
-    # Load environment variables (e.g., GEMINI_API_KEY)
+    # Load environment variables (e.g., GOOGLE_API_KEY)
     load_dotenv()
 
     _maybe_import_marker_csv()
@@ -49,9 +49,9 @@ def main() -> None:
         print("Please run 'uv run python scripts/setup_db.py' to initialize the database.")
         return
 
-    if not os.environ.get("GEMINI_API_KEY"):
-        print("Error: GEMINI_API_KEY not found in .env file or environment variables.")
-        print("Please add your key to a .env file: GEMINI_API_KEY=your_key_here")
+    if not os.environ.get("GOOGLE_API_KEY"):
+        print("Error: GOOGLE_API_KEY not found in .env file or environment variables.")
+        print("Please copy .env.example to .env and set GOOGLE_API_KEY=your_key_here")
         return
 
     session_id = uuid.uuid4().hex

@@ -51,11 +51,11 @@ uv run python scripts/setup_db.py
 
 ### 4. Configure API Key
 sc-bot requires a Google Gemini API key. Generate one in [Google AI Studio](https://aistudio.google.com/).
-Create a `.env` file in the project directory:
+Copy the example environment file:
 ```bash
-echo "GOOGLE_API_KEY=" > .env
+cp .env.example .env
 ```
-*Open the `.env` file in a text editor (e.g., nano, vim, or VS Code) and append your API key after the equals sign.*
+*Open `.env` in a text editor (e.g., nano, vim, or VS Code) and replace the placeholder value for `GOOGLE_API_KEY`.*
 
 ### 5. Run sc-bot
 Launch the interactive terminal UI:
