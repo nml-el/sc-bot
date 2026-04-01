@@ -49,6 +49,13 @@ def test_cell_types_by_multiple_markers() -> None:
     assert "T cell" in cell_type_names
 
 
+def test_cell_types_by_marker_alias_cd20() -> None:
+    cell_types = get_cell_types_by_marker.invoke({"marker_genes": ["CD20"], "species": "Human"})
+    assert isinstance(cell_types, list)
+    cell_type_names = [c["cell_type"] for c in cell_types]
+    assert "B cell" in cell_type_names
+
+
 def test_resolve_cell_type_lineage() -> None:
     markers = get_markers_by_cell_type.invoke({"cell_types": ["T cells"]})
     assert len(markers) > 0

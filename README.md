@@ -9,9 +9,14 @@
 </pre>
 </div>
 
-**sc-bot** is a terminal-based conversational interface for single-cell biology. It provides functionality to query cell type markers, resolve cell ontology lineages, and explore single-cell data context directly from the command line.
+**sc-bot** is a terminal-based conversational interface for single-cell biology. It helps you identify cell types from marker genes, retrieve markers for known populations, resolve paper-style aliases, and work against a local multi-source marker database from the command line.
 
-![sc-bot demo](assets/demo.gif)
+![sc-bot gene list demo](assets/demo_gene_list.gif)
+
+- Infer likely cell types from marker gene panels
+- Query markers for known cell states and tissues
+- Resolve gene aliases like `CD16` and `CD161`
+- Extend the local database with your own marker CSV
 
 ---
 
@@ -60,6 +65,28 @@ uv run sc-bot
 
 ---
 
+## Demo Gallery
+
+### Reverse Cell Typing From a Gene List
+
+This workflow starts from a marker panel and infers the most likely cell identity.
+
+![sc-bot gene list demo](assets/demo_gene_list.gif)
+
+### Resolve Gene Aliases Used in Papers
+
+This workflow translates paper-style names like `CD16` and `CD161` into the internal canonical symbols used by the database.
+
+![sc-bot alias demo](assets/demo_aliases.gif)
+
+### Retrieve Markers for a Known Cell State
+
+This workflow starts from a known biological population and returns informative markers.
+
+![sc-bot exhausted cd8 demo](assets/demo_exhausted_cd8.gif)
+
+---
+
 ## Contributing
 
 ### Add your own marker CSV
@@ -92,12 +119,23 @@ Your personal markers are prioritized during ranking, so user-supplied evidence 
 ## Features
 
 *   **Multi-Source Marker Querying:** Retrieve canonical and supportive marker genes for specific cell types from multiple integrated databases (PanglaoDB + CellMarker 2.0).
+*   **Reverse Cell Type Identification:** Infer likely cell identities from a list of genes using local marker lookups and enrichment analysis.
+*   **Gene Alias Resolution:** Translate common paper aliases to canonical symbols and account for them in queries.
 *   **Tissue-Aware Filtering:** Filter marker genes based on specific tissue constraints (e.g., Lungs vs. Kidneys). Queries map automatically between diverse source nomenclatures (e.g., "Lung" -> "Lungs") and canonical tissue lists.
 *   **Consensus Scoring:** Rank markers by counting their occurrence across multiple tissues (`tissue_count`) and disparate data sources (`source_count`), separating robust core primary markers from secondary context-specific ones.
 *   **Ontology Resolution:** Automatically resolve synonyms and trace lineage within the cell ontology network.
-*   **Fuzzy Matching:** Support for approximate string matching on cell type queries.
 *   **Clipboard Integration:** Built-in UI actions to copy structured marker data to the system clipboard.
 *   **Terminal UI:** Text-based interface compatible with standard terminal emulators.
+
+---
+
+## Data Sources
+
+*   **PanglaoDB:** Marker genes and conservative tissue categories.
+*   **CellMarker 2.0:** Additional marker coverage with more granular tissue labels mapped into the internal tissue system.
+*   **Uberon / ontology graph:** Used to normalize and resolve cell type names, synonyms, and lineage relationships.
+
+All data is stored locally in `~/.sc-bot/sc_markers.db` after setup.
 
 ---
 
@@ -108,6 +146,7 @@ Your personal markers are prioritized during ranking, so user-supplied evidence 
 *   **Offline Data:** Local SQLite database (`~/.sc-bot/sc_markers.db`) mapped by Python scripts from PanglaoDB and CellMarker 2.0.
 
 ### Development Commands
+*   Lint and auto-fix: `uv run ruff check --fix .`
 *   Run tests: `uv run pytest`
 *   Format code: `uv run ruff format .`
 *   Lint code: `uv run ruff check .`

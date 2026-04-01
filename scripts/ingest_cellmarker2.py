@@ -48,23 +48,25 @@ def ingest_cellmarker2(conn: sqlite3.Connection, lbl_to_id: dict, id_to_lbl: dic
     source_name = "CellMarker2"
 
     print("Parsing CellMarker2 and normalizing cell types...")
-    df = pd.read_excel(excel_path, usecols=["species", "cancer_type", "tissue_type", "cell_name", "Symbol"])
+    df = pd.read_excel(excel_path, usecols=["species", "cancer_type", "tissue_type", "cell_name", "marker", "Symbol"])
 
     # Filter for Normal and specific species
     df = df[df["cancer_type"] == "Normal"]
     df = df[df["species"].isin(["Human", "Mouse"])]
 
     # Deduplicate
-    df = df.drop_duplicates(subset=["species", "tissue_type", "cell_name", "Symbol"])
+    df = df.drop_duplicates(subset=["species", "tissue_type", "cell_name", "marker", "Symbol"])
 
     cursor.execute("DELETE FROM cell_markers WHERE source = ?", (source_name,))
 
     data_to_insert = []
+    aliases_to_insert = set()
     mapping_cache = {}
 
     for _, row in df.iterrows():
         raw_cell_type = str(row["cell_name"])
         tissue = str(row["tissue_type"])
+        alias_gene = str(row["marker"])
         marker_gene = str(row["Symbol"])
         species_str = str(row["species"])
 
@@ -81,6 +83,9 @@ def ingest_cellmarker2(conn: sqlite3.Connection, lbl_to_id: dict, id_to_lbl: dic
         else:
             print(f"Warning: Unknown species '{species_str}' found in CellMarker2. Skipping row.")
             continue
+
+        if alias_gene != "nan" and marker_gene != "nan" and alias_gene.lower() != marker_gene.lower():
+            aliases_to_insert.add((species_id, source_name, marker_gene, alias_gene))
 
         data_to_insert.append((canonical_cell_type, tissue, marker_gene, species_id, source_name))
 
@@ -109,6 +114,12 @@ def ingest_cellmarker2(conn: sqlite3.Connection, lbl_to_id: dict, id_to_lbl: dic
         tissues_to_insert.append((t, canonical))
 
     cursor.executemany("INSERT OR IGNORE INTO tissues (name, canonical_tissue) VALUES (?, ?)", tissues_to_insert)
+
+    if aliases_to_insert:
+        cursor.executemany(
+            "INSERT OR IGNORE INTO gene_aliases (species_id, source, canonical_symbol, alias) VALUES (?, ?, ?, ?)",
+            list(aliases_to_insert),
+        )
 
     print(f"Successfully inserted {len(data_to_insert)} records from CellMarker2.")
     return len(data_to_insert)

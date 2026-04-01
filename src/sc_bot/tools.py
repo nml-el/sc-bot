@@ -36,6 +36,109 @@ def get_connection() -> sqlite3.Connection:
     return sqlite3.connect(DB_PATH)
 
 
+def _expand_gene_aliases(marker_genes: list[str], species: str) -> list[str]:
+    """
+    Expands input genes with known aliases and canonical symbols for the requested species.
+
+    Args:
+        marker_genes (list[str]): Input gene symbols from the user.
+        species (str): Requested species.
+
+    Returns:
+        list[str]: Deduplicated list of canonical and alias-aware gene symbols.
+    """
+    if not marker_genes:
+        return []
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    species_name = species.strip().lower()
+
+    expanded: set[str] = set()
+    for gene in marker_genes:
+        gene_upper = gene.strip().upper()
+        if not gene_upper:
+            continue
+
+        expanded.add(gene_upper)
+
+        cursor.execute(
+            """
+            SELECT ga.canonical_symbol, ga.alias
+            FROM gene_aliases ga
+            JOIN species s ON ga.species_id = s.id
+            WHERE s.name COLLATE NOCASE = ?
+              AND (
+                ga.alias COLLATE NOCASE = ?
+                OR ga.canonical_symbol COLLATE NOCASE = ?
+              )
+            """,
+            (species_name, gene_upper, gene_upper),
+        )
+        for canonical_symbol, alias in cursor.fetchall():
+            canonical_clean = canonical_symbol.strip().upper()
+            alias_clean = alias.strip().upper()
+            if canonical_clean and canonical_clean != "NA":
+                expanded.add(canonical_clean)
+            if alias_clean and alias_clean != "NA":
+                expanded.add(alias_clean)
+
+    conn.close()
+    return sorted(expanded)
+
+
+def _expand_gene_groups(marker_genes: list[str], species: str) -> list[list[str]]:
+    """
+    Expands each requested gene into a synonym group for the requested species.
+
+    Args:
+        marker_genes (list[str]): Input genes from the user.
+        species (str): Requested species.
+
+    Returns:
+        list[list[str]]: One alias-aware synonym group per input gene.
+    """
+    if not marker_genes:
+        return []
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    species_name = species.strip().lower()
+    groups: list[list[str]] = []
+
+    for gene in marker_genes:
+        gene_upper = gene.strip().upper()
+        if not gene_upper:
+            continue
+
+        group: set[str] = {gene_upper}
+        cursor.execute(
+            """
+            SELECT ga.canonical_symbol, ga.alias
+            FROM gene_aliases ga
+            JOIN species s ON ga.species_id = s.id
+            WHERE s.name COLLATE NOCASE = ?
+              AND (
+                ga.alias COLLATE NOCASE = ?
+                OR ga.canonical_symbol COLLATE NOCASE = ?
+              )
+            """,
+            (species_name, gene_upper, gene_upper),
+        )
+        for canonical_symbol, alias in cursor.fetchall():
+            canonical_clean = canonical_symbol.strip().upper()
+            alias_clean = alias.strip().upper()
+            if canonical_clean and canonical_clean != "NA":
+                group.add(canonical_clean)
+            if alias_clean and alias_clean != "NA":
+                group.add(alias_clean)
+
+        groups.append(sorted(group))
+
+    conn.close()
+    return groups
+
+
 @lru_cache(maxsize=128)
 def resolve_cell_type(query: str) -> str:
     """
@@ -285,23 +388,31 @@ def get_cell_types_by_marker(marker_genes: list[str], species: str = "Human") ->
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Deduplicate and normalize marker genes case-insensitively
-    unique_genes = list({g.upper(): g for g in marker_genes}.values())
-    placeholders = ",".join("?" for _ in unique_genes)
-    num_genes = len(unique_genes)
+    gene_groups = _expand_gene_groups(marker_genes, species)
+    flat_genes = sorted({gene for group in gene_groups for gene in group})
+    placeholders = ",".join("?" for _ in flat_genes)
+    num_groups = len(gene_groups)
 
     query = f"""
-        SELECT m.cell_type
+        SELECT m.cell_type,
+               COUNT(DISTINCT CASE
+                   {"".join([f"WHEN m.marker_gene COLLATE NOCASE IN ({','.join('?' for _ in group)}) THEN {idx} " for idx, group in enumerate(gene_groups, start=1)])}
+                   ELSE NULL
+               END) as matched_groups
         FROM cell_markers m
         JOIN species s ON m.species_id = s.id
         WHERE m.marker_gene COLLATE NOCASE IN ({placeholders})
           AND s.name COLLATE NOCASE = ?
           AND m.marker_gene != 'nan'
-        GROUP BY m.cell_type 
-        HAVING COUNT(DISTINCT m.marker_gene COLLATE NOCASE) = ?
+        GROUP BY m.cell_type
+        HAVING matched_groups = ?
     """
 
-    params = tuple(unique_genes) + (species, num_genes)
+    group_params: list[str | int] = []
+    for group in gene_groups:
+        group_params.extend(group)
+
+    params = tuple(flat_genes) + tuple(group_params) + (species, num_groups)
 
     cursor.execute(query, params)
     rows = cursor.fetchall()
@@ -337,10 +448,14 @@ def query_enrichr(genes: list[str], species: str = "Human") -> list[dict[str, An
     if not genes:
         return []
 
+    expanded_genes = _expand_gene_aliases(genes, species)
+    if not expanded_genes:
+        return []
+
     libraries = ENRICHR_HUMAN_LIBRARIES if species.lower() == "human" else ENRICHR_MOUSE_LIBRARIES
 
     try:
-        enrichr = Enrichr(gene_list=genes)
+        enrichr = Enrichr(gene_list=expanded_genes)
     except ValueError:
         return []
 
