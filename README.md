@@ -40,14 +40,14 @@ uv sync
 ```
 
 ### 3. Initialize the Database
-sc-bot relies on PanglaoDB, CellMarker 2.0, and the Uberon ontology.
+sc-bot relies on PanglaoDB, CellMarker 2.0, ScType, CellTypist, and the Uberon ontology.
 You do not need to download these files manually. Build the local SQLite database with the orchestrator script, which automatically downloads the required data sources, parses them, and maps tissues and cell types to the ontology.
 
 ```bash
 uv run python scripts/setup_db.py
 ```
 
-*Note: You can ingest specific databases using flags like `--panglao` or `--cellmarker2`, or preserve the schema while refreshing data with `--keep-schema`.*
+*Note: You can ingest specific databases using flags like `--panglao`, `--cellmarker2`, `--sctype`, or `--celltypist`, or preserve the schema while refreshing data with `--keep-schema`.*
 sc-bot also rebuilds the local database automatically when the installed app version changes, so schema and source updates are applied on first launch after an upgrade.
 
 ### 4. Configure API Key
@@ -126,7 +126,7 @@ Your personal markers are prioritized during ranking, so user-supplied evidence 
 
 ## Features
 
-*   **Multi-Source Marker Querying:** Retrieve canonical and supportive marker genes for specific cell types from multiple integrated databases (PanglaoDB + CellMarker 2.0).
+*   **Multi-Source Marker Querying:** Retrieve canonical and supportive marker genes for specific cell types from multiple integrated databases (PanglaoDB + CellMarker 2.0 + ScType + CellTypist).
 *   **Reverse Cell Type Identification:** Infer likely cell identities from a list of genes using local marker lookups and enrichment analysis.
 *   **Gene Alias Resolution:** Translate common gene aliases to canonical symbols and account for them in queries.
 *   **Tissue-Aware Filtering:** Filter marker genes based on specific tissue constraints (e.g., Lungs vs. Kidneys). Queries map automatically between diverse source nomenclatures (e.g., "Lung" -> "Lungs") and canonical tissue lists.
@@ -141,6 +141,8 @@ Your personal markers are prioritized during ranking, so user-supplied evidence 
 
 *   **PanglaoDB:** Marker genes and conservative tissue categories.
 *   **CellMarker 2.0:** Additional marker coverage with more granular tissue labels mapped into the internal tissue system.
+*   **ScType:** Positive marker definitions from the ScType reference database, normalized into the same local query workflow with mixed-case gene symbols promoted to human-style uppercase where appropriate.
+*   **CellTypist:** Curated immune markers from the Pan-Immune CellTypist atlas, using the low-hierarchy cell type labels under the canonical `Immune system` tissue.
 *   **Uberon / ontology graph:** Used to normalize and resolve cell type names, synonyms, and lineage relationships.
 
 All data is stored locally in `~/.sc-bot/sc_markers.db` after setup.
@@ -151,7 +153,7 @@ All data is stored locally in `~/.sc-bot/sc_markers.db` after setup.
 
 *   **Orchestration:** LangChain, LangGraph, and Google GenAI (Gemini).
 *   **Interface:** Textual.
-*   **Offline Data:** Local SQLite database (`~/.sc-bot/sc_markers.db`) mapped by Python scripts from PanglaoDB and CellMarker 2.0.
+*   **Offline Data:** Local SQLite database (`~/.sc-bot/sc_markers.db`) mapped by Python scripts from PanglaoDB, CellMarker 2.0, ScType, and CellTypist.
 
 ### Development Commands
 *   Run tests: `uv run pytest`

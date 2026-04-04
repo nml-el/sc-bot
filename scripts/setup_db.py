@@ -8,8 +8,10 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from ingest_cellmarker2 import ingest_cellmarker2
+from ingest_celltypist import ingest_celltypist
 from ingest_marker_csv import ingest_marker_csv
 from ingest_panglao import ingest_panglao
+from ingest_sctype import ingest_sctype
 from sc_bot.db_metadata import get_app_version, set_database_version
 from utils import create_schema, load_ontology
 from sc_bot.config import DB_PATH
@@ -18,6 +20,8 @@ from sc_bot.config import DB_PATH
 def setup_database(
     panglao: bool = True,
     cellmarker2: bool = True,
+    sctype: bool = True,
+    celltypist: bool = True,
     marker_csv: str | None = None,
     marker_source: str = "custom-source",
     keep_schema: bool = False,
@@ -28,6 +32,8 @@ def setup_database(
     Args:
         panglao (bool, optional): Whether to ingest PanglaoDB data. Defaults to True.
         cellmarker2 (bool, optional): Whether to ingest CellMarker2 data. Defaults to True.
+        sctype (bool, optional): Whether to ingest ScType data. Defaults to True.
+        celltypist (bool, optional): Whether to ingest CellTypist data. Defaults to True.
         marker_csv (str | None, optional): Path to a personal marker CSV to ingest. Defaults to None.
         marker_source (str, optional): Source label for CSV rows without a source value. Defaults to "custom-source".
         keep_schema (bool, optional): Whether to preserve the existing schema while refreshing data. Defaults to False.
@@ -38,9 +44,11 @@ def setup_database(
     Raises:
         None
     """
-    if not panglao and not cellmarker2:
+    if not panglao and not cellmarker2 and not sctype and not celltypist:
         panglao = True
         cellmarker2 = True
+        sctype = True
+        celltypist = True
 
     conn = None
     try:
@@ -58,6 +66,12 @@ def setup_database(
 
         if cellmarker2:
             ingest_cellmarker2(conn, lbl_to_id, id_to_lbl, choices)
+
+        if sctype:
+            ingest_sctype(conn, lbl_to_id, id_to_lbl, choices)
+
+        if celltypist:
+            ingest_celltypist(conn, lbl_to_id, id_to_lbl, choices)
 
         if marker_csv:
             if os.path.exists(marker_csv):
@@ -83,7 +97,7 @@ def main() -> int:
     """
     Main entrypoint for orchestrating the database setup.
     Parses arguments to determine whether to initialize the database schema, load
-    the ontology, and selectively ingest data sources like PanglaoDB or CellMarker2.
+    the ontology, and selectively ingest data sources like PanglaoDB, CellMarker2, ScType, or CellTypist.
 
     Args:
         None
@@ -97,6 +111,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Setup SQLite database and ingest data sources.")
     parser.add_argument("--panglao", action="store_true", help="Ingest PanglaoDB data")
     parser.add_argument("--cellmarker2", action="store_true", help="Ingest CellMarker2 data")
+    parser.add_argument("--sctype", action="store_true", help="Ingest ScType data")
+    parser.add_argument("--celltypist", action="store_true", help="Ingest CellTypist data")
     parser.add_argument("--marker-csv", type=str, default=None, help="Ingest a personal marker CSV file")
     parser.add_argument(
         "--marker-source", type=str, default="custom-source", help="Source label for the personal marker CSV"
@@ -107,6 +123,8 @@ def main() -> int:
     return setup_database(
         panglao=args.panglao,
         cellmarker2=args.cellmarker2,
+        sctype=args.sctype,
+        celltypist=args.celltypist,
         marker_csv=args.marker_csv,
         marker_source=args.marker_source,
         keep_schema=args.keep_schema,

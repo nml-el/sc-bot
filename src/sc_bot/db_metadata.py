@@ -22,21 +22,21 @@ def get_app_version() -> str:
     Raises:
         RuntimeError: If the version cannot be determined from installed metadata or `pyproject.toml`.
     """
+    pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    try:
+        with pyproject_path.open("rb") as pyproject_file:
+            project_data = tomllib.load(pyproject_file)
+    except FileNotFoundError:
+        project_data = None
+
+    version_value = None if project_data is None else project_data.get("project", {}).get("version")
+    if isinstance(version_value, str) and version_value:
+        return version_value
+
     try:
         return package_version("sc-bot")
-    except PackageNotFoundError:
-        pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
-        try:
-            with pyproject_path.open("rb") as pyproject_file:
-                project_data = tomllib.load(pyproject_file)
-        except FileNotFoundError as exc:
-            raise RuntimeError("Could not determine the sc-bot version.") from exc
-
-        version_value = project_data.get("project", {}).get("version")
-        if not isinstance(version_value, str) or not version_value:
-            raise RuntimeError("Could not determine the sc-bot version.")
-
-        return version_value
+    except PackageNotFoundError as exc:
+        raise RuntimeError("Could not determine the sc-bot version.") from exc
 
 
 def ensure_metadata_table(cursor: sqlite3.Cursor) -> None:
