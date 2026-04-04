@@ -45,7 +45,7 @@ def create_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute("DROP TABLE IF EXISTS ontology_synonyms")
     cursor.execute("DROP TABLE IF EXISTS ontology_edges")
     cursor.execute("DROP TABLE IF EXISTS gene_aliases")
-    cursor.execute("DROP TABLE IF EXISTS gene_aliases")
+    cursor.execute("DROP TABLE IF EXISTS app_metadata")
 
     # Create species table
     cursor.execute("""

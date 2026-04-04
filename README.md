@@ -48,6 +48,7 @@ uv run python scripts/setup_db.py
 ```
 
 *Note: You can ingest specific databases using flags like `--panglao` or `--cellmarker2`, or preserve the schema while refreshing data with `--keep-schema`.*
+sc-bot also rebuilds the local database automatically when the installed app version changes, so schema and source updates are applied on first launch after an upgrade.
 
 ### 4. Configure API Key
 sc-bot requires a Google Gemini API key. Generate one in [Google AI Studio](https://aistudio.google.com/).
