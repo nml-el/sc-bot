@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any
 
 from rich.console import RenderableType
@@ -8,13 +9,14 @@ from rich.text import Text
 from rich.align import Align
 from textual import work
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import VerticalScroll, Container, Horizontal
 from textual.widgets import Input, Static, Button
 from textual.worker import get_current_worker
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from sc_bot.agent import format_output
-from sc_bot.models import AgentResponse
+from sc_bot.models import AgentResponse, InteractionMode
 
 
 # Block font ASCII Art
@@ -34,6 +36,7 @@ COLOR_USER = "#7aa2f7"
 COLOR_AI = "#9ece6a"
 COLOR_ERROR = "#f7768e"
 COLOR_THINKING = "#e0af68"
+COLOR_STATUS = "#7dcfff"
 
 
 class ChatMessage(Container):
@@ -94,6 +97,12 @@ class ChatMessage(Container):
                 self.app.copy_to_clipboard(text_to_copy)
                 action_name = label.replace("Copy ", "").lower()
                 self.app.notify(f"Copied {action_name}!", timeout=3)
+
+
+class ModeInput(Input):
+    """Chat input widget with a local Tab binding for mode switching."""
+
+    BINDINGS = [Binding("tab", "app.toggle_mode", "Toggle Mode", show=False)]
 
 
 class ScBotApp(App):
@@ -195,18 +204,142 @@ class ScBotApp(App):
     #chat-input:focus {{
         border: thick {COLOR_AI};
     }}
+
+    #mode-status {{
+        dock: bottom;
+        margin: 0 2;
+        padding: 0 1;
+        background: #24283b;
+        color: {COLOR_STATUS};
+        height: 1;
+    }}
     """
 
-    def __init__(self, agent: Any, logger: logging.Logger, **kwargs: Any) -> None:
+    def __init__(self, agents: dict[InteractionMode, Any], logger: logging.Logger, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.agent = agent
+        self.agents = agents
         self.logger = logger
         self.chat_history: list = []
+        self.mode: InteractionMode = "assist"
+
+    def _mode_status_text(self) -> str:
+        """
+        Returns the one-line mode status text.
+
+        Args:
+            None
+
+        Returns:
+            str: Current mode label for the status bar.
+
+        Raises:
+            None
+        """
+        return f"Mode: {self.mode}"
+
+    def _input_placeholder(self) -> str:
+        """
+        Returns the input placeholder for the active session mode.
+
+        Args:
+            None
+
+        Returns:
+            str: Mode-specific placeholder text.
+
+        Raises:
+            None
+        """
+        if self.mode == "fetch":
+            return "Fetch mode: ask for markers, genes, aliases, tissues, or cell-type hits..."
+
+        return "Assist mode: ask follow-up questions, clarifications, or interpretation..."
+
+    def _set_mode(self, mode: InteractionMode) -> None:
+        """
+        Updates the active session mode and refreshes the input placeholder.
+
+        Args:
+            mode (InteractionMode): The new session mode.
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        self.mode = mode
+        self.query_one("#chat-input", ModeInput).placeholder = self._input_placeholder()
+        self.query_one("#mode-status", Static).update(self._mode_status_text())
+
+    def action_toggle_mode(self) -> None:
+        """
+        Toggles between assist and fetch modes.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        next_mode: InteractionMode = "fetch" if self.mode == "assist" else "assist"
+        self._set_mode(next_mode)
+
+    def _render_system_message(self, message: str) -> None:
+        """
+        Mounts a system message in the chat container.
+
+        Args:
+            message (str): Text to display.
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        container = self.query_one("#chat-container", VerticalScroll)
+        container.mount(ChatMessage(Markdown(message), role="system"))
+        container.scroll_end(animate=False)
+
+    def _handle_mode_command(self, user_text: str) -> bool:
+        """
+        Handles slash commands for session mode changes.
+
+        Args:
+            user_text (str): Raw user input.
+
+        Returns:
+            bool: `True` if the input was handled as a command, otherwise `False`.
+
+        Raises:
+            None
+        """
+        normalized = user_text.strip().lower()
+        if normalized == "/assist":
+            self._set_mode("assist")
+            self._render_system_message(
+                "Switched to **assist** mode. Clarifying questions and conversational follow-ups are now the default."
+            )
+            return True
+
+        if normalized == "/fetch":
+            self._set_mode("fetch")
+            self._render_system_message(
+                "Switched to **fetch** mode. Marker retrieval and database lookups are now the default."
+            )
+            return True
+
+        return False
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield VerticalScroll(id="chat-container")
-        yield Input(placeholder="Type your query here... (e.g. 'What are markers for T cells?')", id="chat-input")
+        yield Static(self._mode_status_text(), id="mode-status")
+        yield ModeInput(placeholder=self._input_placeholder(), id="chat-input")
 
     def on_mount(self) -> None:
         """Called when app starts."""
@@ -221,6 +354,10 @@ class ScBotApp(App):
         use_cases = Markdown(
             "**Welcome to sc-bot!**\n\n"
             "Query single-cell transcriptomics data locally.\n"
+            f"- Current mode: **{self.mode}**\n"
+            "- Press `Tab` in the chat box to toggle modes\n"
+            "- Use `/assist` for conversational clarification and interpretation\n"
+            "- Use `/fetch` for marker and database retrieval\n"
             "- Find common markers between cells (e.g., 'common genes between T cells and B cells')\n"
             "- Identify cell types by marker (e.g., 'what expresses CD3E and CD8A?')\n"
             "- List all available cell types.\n\n"
@@ -229,7 +366,7 @@ class ScBotApp(App):
         container.mount(ChatMessage(use_cases, role="ai"))
 
         # Focus the input
-        self.query_one("#chat-input", Input).focus()
+        self.query_one("#chat-input", ModeInput).focus()
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle user input."""
@@ -237,11 +374,14 @@ class ScBotApp(App):
         if not user_text:
             return
 
-        input_widget = self.query_one("#chat-input", Input)
+        input_widget = self.query_one("#chat-input", ModeInput)
         input_widget.value = ""
 
         if user_text.lower() in ["quit", "exit"]:
             self.exit()
+            return
+
+        if self._handle_mode_command(user_text):
             return
 
         self.logger.info(f"User Input: {user_text}")
@@ -263,17 +403,17 @@ class ScBotApp(App):
         input_widget.disabled = True
 
         # Process the response in a background thread
-        self.process_message(self.chat_history.copy(), thinking_widget)
+        self.process_message(self.chat_history.copy(), thinking_widget, self.mode)
 
     @work(thread=True)
-    def process_message(self, messages_copy: list, thinking_widget: ChatMessage) -> None:
+    def process_message(self, messages_copy: list, thinking_widget: ChatMessage, mode: InteractionMode) -> None:
         """Runs the LangGraph agent in a background thread so UI doesn't freeze."""
         worker = get_current_worker()
         initial_len = len(messages_copy)
 
         try:
             # Synchronous blocking call
-            response = self.agent.invoke({"messages": messages_copy})
+            response = self.agents[mode].invoke({"messages": messages_copy})
 
             if worker.is_cancelled:
                 return
@@ -296,22 +436,67 @@ class ScBotApp(App):
 
             # Extract the structured final response
             raw_ai_message = new_messages[-1].content
-            structured_data = format_output(raw_ai_message)
+            structured_data = format_output(raw_ai_message, mode=mode)
 
-            self.call_from_thread(self._render_ai_response, structured_data, thinking_widget)
+            self.call_from_thread(self._render_ai_response, structured_data, thinking_widget, mode)
 
         except Exception as e:
             self.logger.error(f"Error during agent invocation: {e}", exc_info=True)
             self.call_from_thread(self._render_error, str(e), thinking_widget)
 
-    def _render_ai_response(self, response_data: AgentResponse, thinking_widget: ChatMessage) -> None:
+    def _highlight_response_terms(self, content: str, response_data: AgentResponse, mode: InteractionMode) -> str:
+        """
+        Wraps supported response terms in inline-code markdown for display.
+
+        Args:
+            content (str): Base prose content to highlight.
+            response_data (AgentResponse): Structured response data.
+            mode (InteractionMode): Session mode that produced the response.
+
+        Returns:
+            str: Content with inline-code formatting applied to supported terms.
+
+        Raises:
+            None
+        """
+        highlighted = content
+        highlight_specs: list[tuple[str, int]] = []
+        seen_keys: set[str] = set()
+
+        for gene in response_data.primary_markers + response_data.secondary_markers:
+            gene_clean = gene.strip()
+            if not gene_clean or gene_clean in seen_keys:
+                continue
+
+            seen_keys.add(gene_clean)
+            highlight_specs.append((gene_clean, 0))
+
+        if mode == "assist":
+            for cell_type in response_data.cell_types:
+                cell_type_clean = cell_type.strip()
+                cell_type_key = cell_type_clean.casefold()
+                if not cell_type_clean or cell_type_key in seen_keys:
+                    continue
+
+                seen_keys.add(cell_type_key)
+                highlight_specs.append((cell_type_clean, re.IGNORECASE))
+
+        for term, flags in sorted(highlight_specs, key=lambda item: len(item[0]), reverse=True):
+            pattern = re.compile(rf"(?<![\w`])({re.escape(term)})(?![\w`])", flags)
+            highlighted = pattern.sub(lambda match: f"`{match.group(1)}`", highlighted)
+
+        return highlighted
+
+    def _render_ai_response(
+        self, response_data: AgentResponse, thinking_widget: ChatMessage, mode: InteractionMode
+    ) -> None:
         """Runs on the UI thread to update the UI with the final response."""
         # Replace the thinking widget with the actual response
         thinking_widget.remove()
 
         container = self.query_one("#chat-container", VerticalScroll)
 
-        content = response_data.response
+        content = self._highlight_response_terms(response_data.response, response_data, mode)
         copy_actions = None
         copy_all_text = None
 
@@ -343,7 +528,7 @@ class ScBotApp(App):
         container.scroll_end(animate=False)
 
         # Re-enable input
-        input_widget = self.query_one("#chat-input", Input)
+        input_widget = self.query_one("#chat-input", ModeInput)
         input_widget.disabled = False
         input_widget.focus()
 
@@ -355,6 +540,6 @@ class ScBotApp(App):
         container.mount(ChatMessage(f"An error occurred: {error_msg}", role="error"))
         container.scroll_end(animate=False)
 
-        input_widget = self.query_one("#chat-input", Input)
+        input_widget = self.query_one("#chat-input", ModeInput)
         input_widget.disabled = False
         input_widget.focus()

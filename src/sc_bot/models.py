@@ -3,6 +3,9 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
+InteractionMode = Literal["assist", "fetch"]
+
+
 class AgentResponse(BaseModel):
     """
     Schema for parsing the final output of the AI agent.
@@ -22,5 +25,12 @@ class AgentResponse(BaseModel):
     )
     secondary_markers: list[str] = Field(
         description="Secondary/supportive marker genes when the response is marker-centric. Empty for general responses.",
+        default_factory=list,
+    )
+    cell_types: list[str] = Field(
+        description=(
+            "Canonical ontological cell type labels mentioned in the response. "
+            "Populate this in assist mode for inline highlighting, and leave it empty in fetch mode."
+        ),
         default_factory=list,
     )
