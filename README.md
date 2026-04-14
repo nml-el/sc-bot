@@ -64,6 +64,15 @@ Launch the interactive terminal UI:
 uv run sc-bot
 ```
 
+### 6. Switch Interaction Modes
+sc-bot supports two sticky session modes:
+
+- Press `Tab` while the chat input is focused to toggle between modes
+- `/assist` for normal conversation, clarifying questions, interpretation, and follow-up discussion
+- `/fetch` for marker retrieval, gene fetching, alias lookups, and other database-style queries
+
+The default mode is `/assist`.
+
 ---
 
 ## Feature Showcase

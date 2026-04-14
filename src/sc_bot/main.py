@@ -173,8 +173,11 @@ def main() -> None:
     logger.info("Session started (TUI Mode).")
 
     try:
-        agent = create_ai_agent()
-        app = ScBotApp(agent=agent, logger=logger)
+        agents = {
+            "assist": create_ai_agent("assist"),
+            "fetch": create_ai_agent("fetch"),
+        }
+        app = ScBotApp(agents=agents, logger=logger)
         app.run()
     except Exception as e:
         logger.error(f"Fatal error: {e}", exc_info=True)
