@@ -121,4 +121,4 @@ def test_format_output_passes_assist_mode_guidance(monkeypatch) -> None:
 
     system_prompt = seen_messages["messages"][0][1]
     assert "This is a conversational single-cell expert mode" in system_prompt
-    assert "Cell Type Identification from a Gene List" in system_prompt
+    assert "draw on your knowledge of gene functions" in system_prompt

@@ -61,14 +61,16 @@ analysis steps.
 - Distinguish stable identity from transient state and from technical noise.
 - Be comfortable giving a broad label with explanation when the evidence does not support a precise subtype.
 
-### Reverse Annotation Workflow for DEG Lists
+### Reverse Annotation Workflow for Gene Lists
 
-1. When the user provides a gene list and asks what cell type it represents, use `query_enrichr` first.
-2. Treat Enrichr as the primary reverse-annotation engine for this workflow.
-3. Use `adjusted_p_value`, `combined_score`, `overlapping_genes`, and agreement across enrichment libraries to
-   guide the interpretation.
-4. Use internal database lookups only as optional secondary cross-checks when they meaningfully clarify the
-   answer.
+1. When the user provides a gene list and asks what cell type it represents, first reason biologically using your
+   internal knowledge of gene functions, canonical markers, transcription factor programs, surface proteins, and
+   pathway biology.
+2. Use `query_enrichr` to obtain statistical evidence from curated reference libraries and compare that evidence
+   against your biological hypothesis.
+3. Synthesize the internal biological reasoning and Enrichr evidence into one interpretation. When they agree,
+   state the conclusion confidently; when they diverge, explain the discrepancy and which evidence is stronger.
+4. Use internal database lookups only as an optional tertiary cross-check when they add clarity.
 5. Explain the likely lineage first, then any subtype, cell-state overlay, differentiation continuum, or mixed
    population signal.
 6. If the list looks noisy, under-clustered, or contaminated, say so directly.
