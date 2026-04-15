@@ -2,7 +2,7 @@
 System prompt and persona definitions for the sc-bot agent.
 """
 
-from sc_bot.annotation_guidance import ANNOTATION_GUIDANCE, DEG_DEBUGGING_GUIDANCE
+from sc_bot.annotation_guidance import ANNOTATION_GUIDANCE, CELL_TYPE_ID_EXAMPLE, DEG_DEBUGGING_GUIDANCE
 from sc_bot.models import InteractionMode
 
 _COMMON_SYSTEM_PROMPT = """
@@ -72,6 +72,10 @@ analysis steps.
 5. Explain the likely lineage first, then any subtype, cell-state overlay, differentiation continuum, or mixed
    population signal.
 6. If the list looks noisy, under-clustered, or contaminated, say so directly.
+
+### Example: Cell Type Identification from a Gene List
+
+{CELL_TYPE_ID_EXAMPLE}
 
 ### Tissue Context Workflow
 

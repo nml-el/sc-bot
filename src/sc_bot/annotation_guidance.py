@@ -77,3 +77,62 @@ Use this DEG-focused reasoning framework when the user asks what a differentiall
 - If the cluster looks under-clustered, say so directly and suggest how to refine the analysis.
 - Prefer an honest broad label with rationale over an overconfident fine-grained subtype call.
 """
+
+
+CELL_TYPE_ID_EXAMPLE = """
+The following is an example of the response structure to use when identifying a cell type from a gene list.
+Adapt section names, depth, and subset details to the actual gene list; this is a structural reference, not a
+rigid template. If the gene list points to a different lineage, rename sections accordingly.
+
+**Example Query:**
+"Identify the cell type from this gene list: CD4, CD3D, CD3E, CD3G, IL7R, TRAC, CD27, TBX21, IFNG, CXCR3,
+STAT4, GATA3, IL4, IL5, IL13, CCR4, RORC, IL17A, IL17F, CCL20, CCR6, FOXP3, IL2RA, IKZF2, CTLA4, TIGIT,
+TNFRSF4, CXCR5, BCL6, PDCD1, ICOS, IL21, MT-CO1, MT-CO3, MT-CYB, MALAT1, RPL10, RPS6, FOS, JUN, DUSP1,
+CD52, B2M, HLA-DRA"
+
+**Example Response:**
+
+### Cell Type Identification Report
+
+**Primary Identity:** `CD4+ T lymphocyte` (T helper cell) population.
+
+**Summary:** This gene list is a comprehensive panel spanning the full `CD4+ T cell` compartment rather than a
+single pure subset. Core T-cell lineage markers are present alongside signature genes for multiple helper
+subsets. A handful of mitochondrial, ribosomal, and stress-response genes indicate typical single-cell technical
+noise. Overall the list is best described as a broad `CD4+ T cell` cluster with subset heterogeneity.
+
+#### 1. Lineage & Identity Markers
+
+The T-cell identity is established by `CD3D`, `CD3E`, `CD3G`, and `TRAC` (TCR alpha constant), while `CD4` and
+`IL7R` anchor the helper compartment. `CD27` supports a memory or activated state within the lineage. Together
+these genes confirm a `T lymphocyte` identity restricted to the CD4 lineage.
+
+#### 2. Functional Subset Heterogeneity
+
+The list contains signature genes for several canonical helper subsets:
+
+- **Th1:** `TBX21`, `IFNG`, `CXCR3`, `STAT4` - pro-inflammatory, IFN-gamma-driven program.
+- **Th2:** `GATA3`, `IL4`, `IL5`, `IL13`, `CCR4` - allergic and anti-helminth response program.
+- **Th17:** `RORC`, `IL17A`, `IL17F`, `CCL20`, `CCR6` - barrier-immunity and mucosal defense program.
+- **Treg:** `FOXP3`, `IL2RA` (CD25), `IKZF2` (Helios), `CTLA4`, `TIGIT`, `TNFRSF4` (OX40) - suppressive
+  regulatory program.
+- **Tfh:** `CXCR5`, `BCL6`, `PDCD1` (PD-1), `ICOS`, `IL21` - germinal center helper program.
+
+This breadth indicates the cluster has not been resolved to a single helper subset. It likely represents a mixed
+`CD4+ T cell` compartment or a low-resolution cluster merging multiple functional states.
+
+#### 3. Technical & Biological Noise
+
+- **Mitochondrial:** `MT-CO1`, `MT-CO3`, `MT-CYB` - typical QC genes; elevated levels may flag stressed or
+  damaged cells.
+- **Ribosomal:** `RPL10`, `RPS6` - housekeeping translational machinery; common in most cell types.
+- **Dissociation / stress:** `FOS`, `JUN`, `DUSP1` - immediate-early genes often induced by enzymatic
+  dissociation or sample handling.
+- **Ambient RNA candidates:** `MALAT1`, `CD52`, `B2M`, `HLA-DRA` - ubiquitously expressed transcripts that can
+  appear as ambient contamination.
+
+**Final Verdict:** The dominant identity is `CD4+ T lymphocyte`. The gene list captures a broad helper
+compartment with clear Th1, Th2, Th17, Treg, and Tfh signatures co-existing, consistent with a low-resolution
+cluster that has not been split into individual subsets. Increasing clustering resolution or performing
+sub-clustering within this group would likely separate the helper subsets.
+"""
