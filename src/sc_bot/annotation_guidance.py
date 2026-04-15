@@ -8,6 +8,7 @@ Use this conceptual framework when interpreting single-cell queries:
 - When a query is ambiguous, say so directly and explain whether the evidence supports a broad class, a likely subtype, or a state overlay.
 - Use transcriptomic evidence as strong support, but acknowledge that morphology, anatomy, physiology, epigenomics, and connectivity can further refine cell identity.
 - Keep the assistant focused on single-cell annotation and interpretation rather than generic biology exposition.
+- When interpreting a gene list, draw on your knowledge of gene functions, canonical markers, transcription factor hierarchies, and pathway biology as a primary reasoning tool alongside any tool-derived evidence.
 """
 
 
@@ -82,7 +83,7 @@ Use this DEG-focused reasoning framework when the user asks what a differentiall
 CELL_TYPE_ID_EXAMPLE = """
 The following is an example of the response structure to use when identifying a cell type from a gene list.
 Adapt section names, depth, and subset details to the actual gene list; this is a structural reference, not a
-rigid template. If the gene list points to a different lineage, rename sections accordingly.
+rigid template. It demonstrates how to synthesize internal biological knowledge with enrichment evidence.
 
 **Example Query:**
 "Identify the cell type from this gene list: CD4, CD3D, CD3E, CD3G, IL7R, TRAC, CD27, TBX21, IFNG, CXCR3,
@@ -111,24 +112,24 @@ these genes confirm a `T lymphocyte` identity restricted to the CD4 lineage.
 
 The list contains signature genes for several canonical helper subsets:
 
-- **Th1:** `TBX21`, `IFNG`, `CXCR3`, `STAT4` - pro-inflammatory, IFN-gamma-driven program.
-- **Th2:** `GATA3`, `IL4`, `IL5`, `IL13`, `CCR4` - allergic and anti-helminth response program.
-- **Th17:** `RORC`, `IL17A`, `IL17F`, `CCL20`, `CCR6` - barrier-immunity and mucosal defense program.
-- **Treg:** `FOXP3`, `IL2RA` (CD25), `IKZF2` (Helios), `CTLA4`, `TIGIT`, `TNFRSF4` (OX40) - suppressive
+- **Th1:** `TBX21`, `IFNG`, `CXCR3`, `STAT4` — pro-inflammatory, IFN-gamma-driven program.
+- **Th2:** `GATA3`, `IL4`, `IL5`, `IL13`, `CCR4` — allergic and anti-helminth response program.
+- **Th17:** `RORC`, `IL17A`, `IL17F`, `CCL20`, `CCR6` — barrier-immunity and mucosal defense program.
+- **Treg:** `FOXP3`, `IL2RA` (CD25), `IKZF2` (Helios), `CTLA4`, `TIGIT`, `TNFRSF4` (OX40) — suppressive
   regulatory program.
-- **Tfh:** `CXCR5`, `BCL6`, `PDCD1` (PD-1), `ICOS`, `IL21` - germinal center helper program.
+- **Tfh:** `CXCR5`, `BCL6`, `PDCD1` (PD-1), `ICOS`, `IL21` — germinal center helper program.
 
 This breadth indicates the cluster has not been resolved to a single helper subset. It likely represents a mixed
 `CD4+ T cell` compartment or a low-resolution cluster merging multiple functional states.
 
 #### 3. Technical & Biological Noise
 
-- **Mitochondrial:** `MT-CO1`, `MT-CO3`, `MT-CYB` - typical QC genes; elevated levels may flag stressed or
+- **Mitochondrial:** `MT-CO1`, `MT-CO3`, `MT-CYB` — typical QC genes; elevated levels may flag stressed or
   damaged cells.
-- **Ribosomal:** `RPL10`, `RPS6` - housekeeping translational machinery; common in most cell types.
-- **Dissociation / stress:** `FOS`, `JUN`, `DUSP1` - immediate-early genes often induced by enzymatic
+- **Ribosomal:** `RPL10`, `RPS6` — housekeeping translational machinery; common in most cell types.
+- **Dissociation / stress:** `FOS`, `JUN`, `DUSP1` — immediate-early genes often induced by enzymatic
   dissociation or sample handling.
-- **Ambient RNA candidates:** `MALAT1`, `CD52`, `B2M`, `HLA-DRA` - ubiquitously expressed transcripts that can
+- **Ambient RNA candidates:** `MALAT1`, `CD52`, `B2M`, `HLA-DRA` — ubiquitously expressed transcripts that can
   appear as ambient contamination.
 
 **Final Verdict:** The dominant identity is `CD4+ T lymphocyte`. The gene list captures a broad helper
