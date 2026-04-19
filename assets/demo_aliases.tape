@@ -13,8 +13,11 @@ Set Margin 20
 # Start the bot
 Type "uv run sc-bot"
 Enter
-Sleep 3s
-Sleep 3s
+Sleep 5s
+
+# Switch to Fetch mode
+Tab
+Sleep 2s
 
 # Ask about gene aliases
 Type "For human genes, what are the aliases for CD16 and CD161?"
