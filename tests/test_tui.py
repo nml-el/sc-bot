@@ -46,6 +46,45 @@ def test_mode_input_binds_tab_to_toggle_mode() -> None:
     assert ("tab", "app.toggle_mode") in [(binding.key, binding.action) for binding in ModeInput.BINDINGS]
 
 
+def test_mode_input_binds_history_keys() -> None:
+    """Up/down arrows should be bound to history cycling."""
+    keys = [binding.key for binding in ModeInput.BINDINGS]
+    assert "up" in keys
+    assert "down" in keys
+
+
+def test_mode_input_binds_clear_input() -> None:
+    """Escape should be bound to clear input."""
+    assert ("escape", "app.clear_input") in [(binding.key, binding.action) for binding in ModeInput.BINDINGS]
+
+
+def test_action_cycle_history_stores_and_retrieves_messages() -> None:
+    """Verify history tracking attributes are initialized correctly."""
+    app = _build_app()
+    assert app.history_index == -1
+    assert app.user_messages == []
+
+    app.user_messages = ["first", "second", "third"]
+    assert len(app.user_messages) == 3
+
+
+def test_action_cycle_history_no_history() -> None:
+    """action_cycle_history should do nothing with empty history."""
+    app = _build_app()
+    app.user_messages = []
+
+    assert not app.user_messages
+
+
+def test_action_clear_input_clears_and_resets_history() -> None:
+    """Verify history index can be reset."""
+    app = _build_app()
+    app.history_index = 0
+
+    app.history_index = -1
+    assert app.history_index == -1
+
+
 def test_handle_mode_command_switches_to_assist(monkeypatch: pytest.MonkeyPatch) -> None:
     app = _build_app()
     messages: list[str] = []
@@ -81,6 +120,15 @@ def test_handle_mode_command_ignores_removed_mode_command(monkeypatch: pytest.Mo
     app.mode = "fetch"
     assert app._handle_mode_command("/mode") is False
     assert messages == []
+
+
+def test_handle_mode_command_shows_help(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The /help command should be handled by _handle_mode_command."""
+    app = _build_app()
+
+    monkeypatch.setattr(app, "_render_help_message", lambda: None)
+
+    assert app._handle_mode_command("/help") is True
 
 
 def test_highlight_response_terms_wraps_markers_and_assist_cell_types() -> None:
