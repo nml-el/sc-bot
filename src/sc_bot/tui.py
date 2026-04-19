@@ -110,7 +110,12 @@ class ChatMessage(Container):
 class ModeInput(Input):
     """Chat input widget with a local Tab binding for mode switching."""
 
-    BINDINGS = [Binding("tab", "app.toggle_mode", "Toggle Mode", show=False)]
+    BINDINGS = [
+        Binding("tab", "app.toggle_mode", "Toggle Mode", show=False),
+        Binding("up", "app.cycle_history(-1)", "History Up", show=False),
+        Binding("down", "app.cycle_history(1)", "History Down", show=False),
+        Binding("escape", "app.clear_input", "Clear Input", show=False),
+    ]
 
 
 class ScBotApp(App):
@@ -238,6 +243,8 @@ class ScBotApp(App):
         self.agents = agents
         self.logger = logger
         self.chat_history: list = []
+        self.user_messages: list[str] = []
+        self.history_index: int = -1
         self.mode: InteractionMode = "assist"
 
     def _mode_status_text(self) -> Text:
@@ -309,6 +316,54 @@ class ScBotApp(App):
         next_mode: InteractionMode = "fetch" if self.mode == "assist" else "assist"
         self._set_mode(next_mode)
 
+    def action_cycle_history(self, direction: int) -> None:
+        """
+        Cycles through previous user messages in the input field.
+
+        Args:
+            direction (int): -1 to go to older message, 1 to go to newer message.
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        if not self.user_messages:
+            return
+
+        if self.history_index == -1:
+            if direction == -1:
+                self.history_index = len(self.user_messages) - 1
+            else:
+                return
+        else:
+            new_index = self.history_index + direction
+            if new_index < 0 or new_index >= len(self.user_messages):
+                return
+            self.history_index = new_index
+
+        input_widget = self.query_one("#chat-input", ModeInput)
+        input_widget.value = self.user_messages[self.history_index]
+        input_widget.cursor_position = len(input_widget.value)
+
+    def action_clear_input(self) -> None:
+        """
+        Clears the input field without submitting.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        input_widget = self.query_one("#chat-input", ModeInput)
+        input_widget.value = ""
+        self.history_index = -1
+
     def _render_system_message(self, message: str) -> None:
         """
         Mounts a system message in the chat container.
@@ -354,7 +409,43 @@ class ScBotApp(App):
             )
             return True
 
+        if normalized == "/help":
+            self._render_help_message()
+            return True
+
         return False
+
+    def _render_help_message(self) -> None:
+        """
+        Renders the help message with mode descriptions and keyboard shortcuts.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        help_text = Markdown(
+            "**sc-bot Help**\n\n"
+            "## Modes\n"
+            "- **Assist** — Conversational analysis, biological interpretation, cell type ID from gene lists\n"
+            "- **Fetch** — Database-only retrieval of markers, aliases, tissues, cell-type matches\n\n"
+            "## Commands\n"
+            "- `/assist` — Switch to Assist mode\n"
+            "- `/fetch` — Switch to Fetch mode\n"
+            "- `/help` — Show this help message\n\n"
+            "## Keyboard Shortcuts\n"
+            "- `Tab` — Toggle between Assist/Fetch modes\n"
+            "- `↑` / `↓` — Cycle through previous messages in session\n"
+            "- `Escape` — Clear input box\n\n"
+            "*Type 'quit' or 'exit' to leave.*"
+        )
+        container = self.query_one("#chat-container", VerticalScroll)
+        container.mount(ChatMessage(help_text, role="system"))
+        container.scroll_end(animate=False)
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -414,6 +505,10 @@ class ScBotApp(App):
 
         # Add user message to LangChain history
         self.chat_history.append(HumanMessage(user_text))
+
+        # Track user messages for history cycling and reset history index
+        self.user_messages.append(user_text)
+        self.history_index = -1
 
         # Mount a "Thinking..." placeholder
         thinking_widget = ChatMessage("...", role="thinking")
