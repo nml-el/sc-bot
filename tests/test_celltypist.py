@@ -62,7 +62,7 @@ def test_setup_database_defaults_include_celltypist(monkeypatch, tmp_path) -> No
     monkeypatch.setattr(setup_db_module, "ingest_sctype", lambda *_args: calls.append("sctype"))
     monkeypatch.setattr(setup_db_module, "ingest_celltypist", lambda *_args: calls.append("celltypist"))
     monkeypatch.setattr(setup_db_module, "set_database_version", lambda _cursor, _version: None)
-    monkeypatch.setattr(setup_db_module, "get_app_version", lambda: "0.1.1")
+    monkeypatch.setattr(setup_db_module, "get_app_version", lambda: "9.9.9")
 
     assert setup_db_module.setup_database(panglao=False, cellmarker2=False, sctype=False, celltypist=False) == 0
     assert calls == ["panglao", "cellmarker2", "sctype", "celltypist"]

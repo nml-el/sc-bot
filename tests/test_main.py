@@ -21,15 +21,15 @@ def test_ensure_database_is_current_rebuilds_when_version_mismatches(monkeypatch
     calls: list[str] = []
 
     monkeypatch.setattr(main_module, "DB_PATH", db_path)
-    monkeypatch.setattr(main_module, "get_app_version", lambda: "0.1.0")
-    monkeypatch.setattr(main_module, "get_database_version", lambda _db_path: "0.0.9")
+    monkeypatch.setattr(main_module, "get_app_version", lambda: "9.9.9")
+    monkeypatch.setattr(main_module, "get_database_version", lambda _db_path: "0.1.1")
     monkeypatch.setattr(main_module, "_rebuild_database", lambda: calls.append("rebuild") or True)
 
     assert main_module._ensure_database_is_current() is True
     assert calls == ["rebuild"]
 
     captured = capsys.readouterr()
-    assert "does not match installed sc-bot 0.1.0" in captured.out
+    assert "does not match installed sc-bot 9.9.9" in captured.out
 
 
 def test_ensure_database_is_current_accepts_matching_version(monkeypatch, tmp_path) -> None:
@@ -37,8 +37,8 @@ def test_ensure_database_is_current_accepts_matching_version(monkeypatch, tmp_pa
     db_path.touch()
 
     monkeypatch.setattr(main_module, "DB_PATH", db_path)
-    monkeypatch.setattr(main_module, "get_app_version", lambda: "0.1.0")
-    monkeypatch.setattr(main_module, "get_database_version", lambda _db_path: "0.1.0")
+    monkeypatch.setattr(main_module, "get_app_version", lambda: "9.9.9")
+    monkeypatch.setattr(main_module, "get_database_version", lambda _db_path: "9.9.9")
     monkeypatch.setattr(main_module, "_rebuild_database", lambda: pytest.fail("database should not rebuild"))
 
     assert main_module._ensure_database_is_current() is True
@@ -48,10 +48,10 @@ def test_database_version_round_trip(tmp_path) -> None:
     db_path = tmp_path / "sc_markers.db"
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
-        set_database_version(cursor, "0.1.0")
+        set_database_version(cursor, "9.9.9")
         conn.commit()
 
-    assert get_database_version(db_path) == "0.1.0"
+    assert get_database_version(db_path) == "9.9.9"
 
 
 def test_main_requires_google_api_key(monkeypatch, tmp_path, capsys) -> None:
