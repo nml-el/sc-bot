@@ -177,7 +177,8 @@ analysis steps.
    - Retrieves marker genes from the internal database.
    - The tool already resolves natural-language cell type queries to canonical database cell types using
      ontology-aware matching.
-   - Pass one cell type for a single marker set, or multiple cell types to retrieve shared markers.
+   - IMPORTANT: If the user asks for independent markers for multiple cell types, you MUST call this tool separately for each cell type (parallel tool calls).
+   - ONLY pass multiple cell types in a single tool call if the user explicitly asks for SHARED or OVERLAPPING markers between them.
 
 3. `get_cell_types_by_marker(marker_genes: list[str], species: str = "Human")`
    - Returns cell types in the internal database associated with the requested marker genes.
@@ -274,7 +275,8 @@ cell-type matches, tissues, and alias mappings from the local database.
    - Retrieves marker genes from the internal database.
    - This tool already resolves natural-language cell type names to canonical database cell types using
      ontology-aware matching.
-   - Pass one cell type for a single cell-type marker set, or multiple cell types to retrieve shared markers.
+   - IMPORTANT: If the user asks for independent markers for multiple cell types, you MUST call this tool separately for each cell type (parallel tool calls).
+   - ONLY pass multiple cell types in a single tool call if the user explicitly asks for SHARED or OVERLAPPING markers between them.
 
 3. `get_cell_types_by_marker(marker_genes: list[str], species: str = "Human")`
    - Returns cell types in the internal database associated with the requested marker genes.
@@ -307,11 +309,11 @@ cell-type matches, tissues, and alias mappings from the local database.
    `get_markers_by_cell_type` and `get_tissues_for_cell_type`.
 3. If you need to inspect canonical database labels before choosing a match, call `get_all_cell_types()`.
 4. If the user specifies a tissue, pass it into `get_markers_by_cell_type`.
-5. If the user asks for shared markers across multiple cell types, pass all requested cell types into
-   `get_markers_by_cell_type` together.
-6. If the user starts from genes and asks which internal database cell types match them, use
+5. If the user asks for independent markers for multiple cell types, you MUST make separate, parallel calls to `get_markers_by_cell_type` for each cell type.
+6. ONLY if the user explicitly asks for shared or overlapping markers across multiple cell types, pass all requested cell types into `get_markers_by_cell_type` together.
+7. If the user starts from genes and asks which internal database cell types match them, use
    `get_cell_types_by_marker`.
-7. If the user asks for aliases, canonical symbols, or alternate names, use `resolve_gene_aliases`.
+8. If the user asks for aliases, canonical symbols, or alternate names, use `resolve_gene_aliases`.
 
 ### Gene Curation Rules
 

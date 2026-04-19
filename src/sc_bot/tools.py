@@ -391,6 +391,9 @@ def get_markers_by_cell_type(
     Optionally accepts a tissue filter to restrict results.
     Each returned marker includes 'tissue_count' and 'source_count' scores for ranking.
 
+    IMPORTANT: If multiple cell types are provided in `cell_types`, this tool returns the INTERSECTION of markers (i.e., markers shared by ALL provided cell types).
+    To get independent marker lists for multiple cell types, you MUST call this tool multiple times, once for each cell type.
+
     Args:
         cell_types (list[str]): A list of cell type names to query (e.g., ['T cell'] or ['T cell', 'B cell']).
         species (str, optional): The species to query. Valid options are "Human" or "Mouse". Defaults to "Human".
