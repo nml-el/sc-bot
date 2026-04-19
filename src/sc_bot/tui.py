@@ -10,7 +10,7 @@ from rich.align import Align
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import VerticalScroll, Container, Horizontal
+from textual.containers import VerticalScroll, Container
 from textual.widgets import Input, Static, Button
 from textual.worker import get_current_worker
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
@@ -46,14 +46,14 @@ class ChatMessage(Container):
         self,
         content: RenderableType | str,
         role: str,
-        copy_actions: dict[str, str] | None = None,
+        marker_sections: list[tuple[str, str, str]] | None = None,
         copy_all_text: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self._msg_content = content
         self.role = role
-        self.copy_actions = copy_actions
+        self.marker_sections = marker_sections
         self.copy_all_text = copy_all_text
 
     def compose(self) -> ComposeResult:
@@ -62,11 +62,12 @@ class ChatMessage(Container):
 
         yield Static(self._msg_content, classes="msg-content")
 
-        if self.copy_actions:
-            with Horizontal(classes="action-buttons"):
-                for label in self.copy_actions:
-                    sanitized_label = re.sub(r"[^a-zA-Z0-9_-]", "-", label)
-                    yield Button(label, id=f"copy-{id(self)}-{sanitized_label}", classes="copy-btn")
+        if self.marker_sections:
+            for idx, (label, display_json, _copy_json) in enumerate(self.marker_sections):
+                yield Static(Markdown(f"**{label}:**"), classes="section-label")
+                with Container(classes="code-box"):
+                    yield Static(Markdown(f"```python\n{display_json}\n```"), classes="code-content")
+                    yield Button("📋", id=f"section-copy-{id(self)}-{idx}", classes="section-copy-btn")
 
     def on_mount(self) -> None:
         if self.role == "user":
@@ -91,13 +92,18 @@ class ChatMessage(Container):
         if event.button.has_class("copy-all-btn") and self.copy_all_text:
             self.app.copy_to_clipboard(self.copy_all_text)
             self.app.notify("Copied all markers!", timeout=3)
-        elif event.button.has_class("copy-btn") and self.copy_actions:
-            label = str(event.button.label)
-            text_to_copy = self.copy_actions.get(label)
-            if text_to_copy:
-                self.app.copy_to_clipboard(text_to_copy)
-                action_name = label.replace("Copy ", "").lower()
-                self.app.notify(f"Copied {action_name}!", timeout=3)
+        elif event.button.has_class("section-copy-btn") and self.marker_sections:
+            button_id = event.button.id or ""
+            prefix = f"section-copy-{id(self)}-"
+            if button_id.startswith(prefix):
+                try:
+                    idx = int(button_id[len(prefix) :])
+                except ValueError:
+                    return
+                if 0 <= idx < len(self.marker_sections):
+                    label, _display, copy_json = self.marker_sections[idx]
+                    self.app.copy_to_clipboard(copy_json)
+                    self.app.notify(f"Copied {label.lower()}!", timeout=3)
 
 
 class ModeInput(Input):
@@ -162,18 +168,33 @@ class ScBotApp(App):
         padding-top: 1;
     }}
 
-    .copy-btn {{
-        margin-top: 1;
-        margin-right: 1;
-        background: #24283b;
-        color: {COLOR_AI};
-        border: none;
-        height: 3;
-        min-width: 20;
+    .section-label {{
+        height: auto;
+        padding-top: 1;
     }}
-    .copy-btn:hover {{
-        background: {COLOR_AI};
-        color: {THEME_BG};
+
+    .code-box {{
+        height: auto;
+        position: relative;
+        background: #24283b;
+    }}
+
+    .code-content {{
+        height: auto;
+    }}
+
+    .section-copy-btn {{
+        dock: right;
+        background: transparent;
+        color: {THEME_FG};
+        border: none;
+        min-width: 5;
+        height: 1;
+        padding: 0;
+    }}
+    .section-copy-btn:hover {{
+        color: {COLOR_AI};
+        background: transparent;
     }}
 
     .copy-all-btn {{
@@ -188,11 +209,6 @@ class ScBotApp(App):
     .copy-all-btn:hover {{
         color: {COLOR_AI};
         background: transparent;
-    }}
-
-    .action-buttons {{
-        height: auto;
-        align: left middle;
     }}
 
     #chat-input {{
@@ -444,6 +460,9 @@ class ScBotApp(App):
             for msg in reversed(new_messages[initial_len:]):
                 if isinstance(msg, AIMessage) and msg.content:
                     raw_ai_message = msg.content
+                    # Handle Gemini returning list instead of string
+                    if isinstance(raw_ai_message, list):
+                        raw_ai_message = "\n".join(str(item) for item in raw_ai_message)
                     break
 
             if not raw_ai_message:
@@ -516,26 +535,25 @@ class ScBotApp(App):
         container = self.query_one("#chat-container", VerticalScroll)
 
         content = self._highlight_response_terms(response_data.response, response_data, mode)
-        copy_actions = None
+        marker_sections_data: list[tuple[str, str, str]] | None = None
         copy_all_text = None
 
         if response_data.response_type == "markers" and response_data.marker_sections:
-            copy_actions = {}
+            marker_sections_data = []
             combined_markers = {}
 
             for section in response_data.marker_sections:
                 if not section.genes:
                     continue
-                section_json_copy = json.dumps(section.genes, indent=2)
-                section_json_display = json.dumps(section.genes)
-                copy_actions[f"Copy {section.label}"] = section_json_copy
+                display_json = json.dumps(section.genes)
+                copy_json = json.dumps(section.genes, indent=2)
+                marker_sections_data.append((section.label, display_json, copy_json))
                 combined_markers[section.label] = section.genes
-                content += f"\n\n**{section.label}:**\n```python\n{section_json_display}\n```"
 
             copy_all_text = json.dumps(combined_markers, indent=2)
 
         container.mount(
-            ChatMessage(Markdown(content), role="ai", copy_actions=copy_actions, copy_all_text=copy_all_text)
+            ChatMessage(Markdown(content), role="ai", marker_sections=marker_sections_data, copy_all_text=copy_all_text)
         )
         container.scroll_end(animate=False)
 
