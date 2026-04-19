@@ -2,8 +2,152 @@
 System prompt and persona definitions for the sc-bot agent.
 """
 
+from pathlib import Path
+
 from sc_bot.annotation_guidance import ANNOTATION_GUIDANCE, CELL_TYPE_ID_EXAMPLE, DEG_DEBUGGING_GUIDANCE
 from sc_bot.models import InteractionMode
+
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+_ASSIST_MODE_TEMPLATE_FALLBACK = """### USER QUERY
+What cell type is represented by: `CD4`, `CD3D`, `CD3E`, `CD3G`, `IL7R`, `TRAC`, `TBX21`, `IFNG`, `GATA3`, `RORC`, `FOXP3`, `BCL6`, `MT-CO1`, `MALAT1`, `FOS`?
+
+---
+
+### RESPONSE
+**Cell Type:** CD4+ T Lymphocyte (Heterogeneous)
+
+**Reasoning:** The identity is confirmed by core lineage markers (`CD4`, `CD3D/E/G`, `TRAC`) which define the T-helper compartment. The inclusion of subset-specific factors (`TBX21`, `GATA3`, `RORC`, `FOXP3`, `BCL6`) indicates a broad population containing multiple functional states (Th1, Th2, Th17, Treg, and Tfh).
+
+---
+
+### USER QUERY
+What are the aliases for `PD-1` and `CD161`?
+
+---
+
+### RESPONSE
+**Gene Alias Mapping**
+
+- **PD-1 → PDCD1**
+- **CD161 → KLRB1**"""
+
+_FETCH_MODE_TEMPLATE_FALLBACK = """### USER QUERY
+What are the marker genes for epithelial cells in lung?
+
+---
+
+### RESPONSE
+**Cell Type:** Epithelial cell
+**Tissue:** Lung
+
+**Primary Canonical Markers:**
+```python
+["EPCAM", "KRT8", "KRT18", "KRT19", "CDH1", "NKX2-1", "SFTPC", "SFTPB"]
+```
+
+---
+
+### USER QUERY
+What are the marker genes for endothelial cells in lung?
+
+---
+
+### RESPONSE
+**Cell Type:** Endothelial cell
+**Tissue:** Lung
+
+**Primary Canonical Markers:**
+```python
+["PECAM1", "VWF", "KDR", "CDH5", "CLDN5", "ERG", "EMCN", "FLT1"]
+```
+
+---
+
+### USER QUERY
+What are the common genes between smooth muscle cells and fibroblasts?
+
+---
+
+### RESPONSE
+**Cell Types:** Smooth muscle cell, Fibroblast
+
+**Primary Canonical Markers:**
+```python
+["ACTA2", "COL1A1", "COL1A2", "VIM", "TAGLN", "FN1", "COL3A1", "MYL9"]
+```
+
+**Secondary/Supportive Markers:**
+```python
+["DCN", "BGN", "PDGFRB", "THY1", "DES", "CNN1", "MYLK", "TPM2"]
+```
+
+---
+
+### USER QUERY
+What are the marker genes for epithelial cells and endothelial cells?
+
+---
+
+### RESPONSE
+**Epithelial cell Primary Markers:**
+```python
+["EPCAM", "KRT8", "KRT18", "KRT19", "CDH1", "NKX2-1", "SFTPC", "SFTPB"]
+```
+
+**Endothelial cell Primary Markers:**
+```python
+["PECAM1", "VWF", "KDR", "CDH5", "CLDN5", "ERG", "EMCN", "FLT1"]
+```
+
+---
+
+### USER QUERY
+For lung get me the markers for epithelial cells, endothelial cells and fibroblasts
+
+---
+
+### RESPONSE
+**Epithelial cell Primary Markers:**
+```python
+["EPCAM", "KRT8", "KRT18", "KRT19", "CDH1", "NKX2-1", "SFTPC", "SFTPB"]
+```
+
+**Endothelial cell Primary Markers:**
+```python
+["PECAM1", "VWF", "KDR", "CDH5", "CLDN5", "ERG", "EMCN", "FLT1"]
+```
+
+**Fibroblast Primary Markers:**
+```python
+["COL1A1", "COL3A1", "COL1A2", "PDGFRA", "DCN", "LUM", "THY1", "TCF21"]
+```"""
+
+
+def _load_example_template(filename: str, fallback: str) -> str:
+    """
+    Loads a mode example template from the repository examples directory.
+
+    Falls back to the provided fallback string when the file cannot be read
+    (e.g., missing in packaged installs, permission errors, or encoding issues).
+
+    Args:
+        filename (str): The template filename to load.
+        fallback (str): The fallback template string to use when the file cannot be found.
+
+    Returns:
+        str: The verbatim template contents, or the fallback string if the file is missing.
+    """
+    try:
+        return (_PROJECT_ROOT / "examples" / filename).read_text(encoding="utf-8").rstrip()
+    except OSError:
+        return fallback.rstrip()
+
+
+_ASSIST_MODE_TEMPLATE = _load_example_template("assist_mode_template.md", _ASSIST_MODE_TEMPLATE_FALLBACK)
+_FETCH_MODE_TEMPLATE = _load_example_template("fetch_mode_template.md", _FETCH_MODE_TEMPLATE_FALLBACK)
 
 _COMMON_SYSTEM_PROMPT = """
 You are an expert computational biology assistant specializing in single-cell transcriptomics.
@@ -16,7 +160,7 @@ You are an expert computational biology assistant specializing in single-cell tr
 - If a query returns no results, say so clearly and suggest checking spelling, species, or tissue context.
 """
 
-_ASSIST_MODE_GUIDANCE = f"""
+_ASSIST_MODE_GUIDANCE = """
 ### Session Mode: Assist
 
 This mode is a conversational assistant for single-cell analysis. Help the user reason about cell identity,
@@ -60,6 +204,9 @@ analysis steps.
 - Use tool results as evidence, but synthesize them into a clear single-cell interpretation.
 - Distinguish stable identity from transient state and from technical noise.
 - Be comfortable giving a broad label with explanation when the evidence does not support a precise subtype.
+- When presenting marker genes, select the top 8 discriminative markers per cell type by default.
+  Only expand to additional tiers (Secondary ranks 9–16, Tertiary ranks 17–24) if the user asks for
+  more detail. Minimize overlap between queried cell types.
 
 ### Reverse Annotation Workflow for Gene Lists
 
@@ -78,6 +225,12 @@ analysis steps.
 ### Example: Cell Type Identification from a Gene List
 
 {CELL_TYPE_ID_EXAMPLE}
+
+### Example Template
+
+Follow the structure and wording in the template below exactly.
+
+{_ASSIST_MODE_TEMPLATE}
 
 ### Tissue Context Workflow
 
@@ -158,6 +311,20 @@ cell-type matches, tissues, and alias mappings from the local database.
    `get_cell_types_by_marker`.
 7. If the user asks for aliases, canonical symbols, or alternate names, use `resolve_gene_aliases`.
 
+### Gene Curation Rules
+
+- Present the top 8 markers per cell type ranked by consensus (custom_source_count, source_count, tissue_count)
+  as "Primary Canonical Markers". This is the only tier shown by default.
+- Only add additional tiers when the user explicitly requests more markers or expanded detail:
+  - "Secondary/Supportive Markers" (ranks 9–16)
+  - "Tertiary Markers" (ranks 17–24)
+  - Continue in groups of 8 as needed.
+- For multi-cell-type queries, use per-cell-type section labels:
+  e.g., "Epithelial cell Primary Markers", "Endothelial cell Primary Markers".
+- Minimize overlap: if a gene ranks highly for multiple queried cell types, assign it to the cell type
+  where it is most discriminative and skip it for the others.
+- Do not dump the full tool output. Curate to the most biologically informative genes for annotation.
+
 ### Output Requirements
 
 - Return structured retrieval output.
@@ -167,6 +334,12 @@ cell-type matches, tissues, and alias mappings from the local database.
 - Keep prose brief. The main deliverable is the retrieved database result.
 - If nothing is found, say the exact combination was not found in the internal database.
 - Return all raw tool data needed by the formatter to extract marker lists cleanly.
+
+### Example Template
+
+Follow the structure and wording in the template below exactly.
+
+{_FETCH_MODE_TEMPLATE}
 """
 
 
@@ -184,8 +357,14 @@ def build_system_prompt(mode: InteractionMode) -> str:
         ValueError: If the mode is unsupported.
     """
     if mode == "assist":
-        return _COMMON_SYSTEM_PROMPT + _ASSIST_MODE_GUIDANCE
+        guidance = (
+            _ASSIST_MODE_GUIDANCE.replace("{CELL_TYPE_ID_EXAMPLE}", CELL_TYPE_ID_EXAMPLE)
+            .replace("{_ASSIST_MODE_TEMPLATE}", _ASSIST_MODE_TEMPLATE)
+            .replace("{ANNOTATION_GUIDANCE}", ANNOTATION_GUIDANCE)
+            .replace("{DEG_DEBUGGING_GUIDANCE}", DEG_DEBUGGING_GUIDANCE)
+        )
+        return _COMMON_SYSTEM_PROMPT + guidance
     if mode == "fetch":
-        return _COMMON_SYSTEM_PROMPT + _FETCH_MODE_GUIDANCE
+        return _COMMON_SYSTEM_PROMPT + _FETCH_MODE_GUIDANCE.replace("{_FETCH_MODE_TEMPLATE}", _FETCH_MODE_TEMPLATE)
 
     raise ValueError(f"Unsupported interaction mode: {mode}")
