@@ -159,6 +159,7 @@ def format_output(raw_message: str, mode: InteractionMode = "assist") -> AgentRe
                 "When you do return markers, populate `marker_sections` with tiered sections of up to 8 genes each. "
                 "The first tier per cell type is labeled 'Primary Canonical Markers' for single-cell-type queries, or "
                 "'<CellType> Primary Markers' for multi-cell-type queries (e.g., 'Epithelial cell Primary Markers'). "
+                "When using 'Primary' in the section label, return exactly 8 genes. The term 'Primary' implies top 8 by consensus. "
                 "Only add a 'Secondary/Supportive Markers' tier (ranks 9-16) if the raw agent output explicitly "
                 "presents additional tiers or the user requested expanded detail. Each section must not exceed 8 genes. "
                 "Minimize overlap: assign shared genes to the cell type where they are most discriminative. "

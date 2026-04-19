@@ -118,14 +118,34 @@ def test_highlight_response_terms_skips_cell_types_in_fetch_mode() -> None:
     assert "`T cell`" not in highlighted
 
 
-def test_chat_message_compose_with_special_chars_in_label() -> None:
-    """Section labels with slashes or parens must not crash the button ID sanitization."""
-    import re
+def test_chat_message_stores_marker_sections_for_copy() -> None:
+    """ChatMessage with marker_sections stores tuples for per-section copy buttons."""
+    from sc_bot.tui import ChatMessage
 
-    label = "Copy Other Myeloid/Macrophage Markers"
-    sanitized = re.sub(r"[^a-zA-Z0-9_-]", "-", label)
-    button_id = f"copy-12345-{sanitized}"
-    # Textual IDs allow only letters, numbers, underscores, hyphens
-    assert "/" not in button_id
-    assert "(" not in button_id
-    assert all(c.isalnum() or c in "_-" for c in button_id)
+    sections = [
+        ("Primary Canonical Markers", '["CD3E", "CD4"]', '[\n  "CD3E",\n  "CD4"\n]'),
+        ("Secondary/Supportive Markers", '["FOXP3"]', '[\n  "FOXP3"\n]'),
+    ]
+    widget = ChatMessage("Test", role="ai", marker_sections=sections, copy_all_text='{"all": true}')
+
+    assert widget.marker_sections is not None
+    assert len(widget.marker_sections) == 2
+    assert widget.marker_sections[0][0] == "Primary Canonical Markers"
+    assert widget.marker_sections[1][2] == '[\n  "FOXP3"\n]'
+    assert widget.copy_all_text == '{"all": true}'
+
+
+def test_chat_message_marker_sections_with_special_characters_in_label() -> None:
+    """Labels with special characters (slashes, parens) should be stored and handled correctly."""
+    from sc_bot.tui import ChatMessage
+
+    sections = [
+        ("Myeloid/Macrophage Primary Markers", '["CD68"]', '[\n  "CD68"\n]'),
+        ("Smooth Muscle (Vascular) Primary Markers", '["ACTA2"]', '[\n  "ACTA2"\n]'),
+    ]
+    widget = ChatMessage("Test", role="ai", marker_sections=sections)
+
+    assert widget.marker_sections is not None
+    assert len(widget.marker_sections) == 2
+    assert "/" in widget.marker_sections[0][0]
+    assert "(" in widget.marker_sections[1][0]

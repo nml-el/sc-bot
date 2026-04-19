@@ -207,6 +207,8 @@ analysis steps.
 - When presenting marker genes, select the top 8 discriminative markers per cell type by default.
   Only expand to additional tiers (Secondary ranks 9–16, Tertiary ranks 17–24) if the user asks for
   more detail. Minimize overlap between queried cell types.
+- When using "Primary" in your output label (e.g., "Primary Canonical Markers" or "<CellType> Primary Markers"),
+  return exactly 8 genes. The term "Primary" implies top 8 by consensus.
 
 ### Reverse Annotation Workflow for Gene Lists
 
@@ -315,6 +317,8 @@ cell-type matches, tissues, and alias mappings from the local database.
 
 - Present the top 8 markers per cell type ranked by consensus (custom_source_count, source_count, tissue_count)
   as "Primary Canonical Markers". This is the only tier shown by default.
+- When using "Primary" in your output label (e.g., "Primary Canonical Markers" or "<CellType> Primary Markers"),
+  return exactly 8 genes. The term "Primary" implies top 8 by consensus.
 - Only add additional tiers when the user explicitly requests more markers or expanded detail:
   - "Secondary/Supportive Markers" (ranks 9–16)
   - "Tertiary Markers" (ranks 17–24)
