@@ -13,11 +13,14 @@ Set Margin 20
 # Start the bot
 Type "uv run sc-bot"
 Enter
-Sleep 3s
-Sleep 3s
+Sleep 5s
+
+# Switch to Fetch mode
+Tab
+Sleep 2s
 
 # Ask a biology question
-Type "What are the key marker genes for exhausted CD8+ T cells?"
+Type "What are the primary markers for exhausted CD8+ T cells?"
 Enter
 Sleep 11s
 
