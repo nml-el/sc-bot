@@ -240,20 +240,23 @@ class ScBotApp(App):
         self.chat_history: list = []
         self.mode: InteractionMode = "assist"
 
-    def _mode_status_text(self) -> str:
+    def _mode_status_text(self) -> Text:
         """
-        Returns the one-line mode status text with model name.
+        Returns the one-line mode status text with model name, color-coded.
 
         Args:
             None
 
         Returns:
-            str: Current mode label and model name for the status bar.
+            Text: Styled status text with color-coded mode and model name.
 
         Raises:
             None
         """
-        return f"Mode: {self.mode.capitalize()} · Model: {LLM_MODEL}"
+        mode_color = COLOR_AI if self.mode == "assist" else COLOR_USER  # green for Assist, blue for Fetch
+        mode_name = self.mode.capitalize()
+        model_text = Text(f"Model: {LLM_MODEL}", style=THEME_FG)
+        return Text.from_markup(f"Mode: [{mode_color}]{mode_name}[/{mode_color}] · ") + model_text
 
     def _input_placeholder(self) -> str:
         """
