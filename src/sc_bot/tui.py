@@ -16,6 +16,7 @@ from textual.worker import get_current_worker
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from sc_bot.agent import format_output
+from sc_bot.config import LLM_MODEL
 from sc_bot.models import AgentResponse, InteractionMode
 
 
@@ -241,18 +242,18 @@ class ScBotApp(App):
 
     def _mode_status_text(self) -> str:
         """
-        Returns the one-line mode status text.
+        Returns the one-line mode status text with model name.
 
         Args:
             None
 
         Returns:
-            str: Current mode label for the status bar.
+            str: Current mode label and model name for the status bar.
 
         Raises:
             None
         """
-        return f"Mode: {self.mode}"
+        return f"Mode: {self.mode.capitalize()} · Model: {LLM_MODEL}"
 
     def _input_placeholder(self) -> str:
         """
@@ -268,9 +269,9 @@ class ScBotApp(App):
             None
         """
         if self.mode == "fetch":
-            return "Fetch mode: ask for markers, genes, aliases, tissues, or cell-type hits..."
+            return "Fetch mode: retrieve marker genes, cell-type matches, and aliases from the database..."
 
-        return "Assist mode: ask follow-up questions, clarifications, or interpretation..."
+        return "Assist mode: ask follow-up questions, biological interpretation, or cell type identification from gene lists..."
 
     def _set_mode(self, mode: InteractionMode) -> None:
         """
@@ -339,14 +340,14 @@ class ScBotApp(App):
         if normalized == "/assist":
             self._set_mode("assist")
             self._render_system_message(
-                "Switched to **assist** mode. Clarifying questions and conversational follow-ups are now the default."
+                "Switched to **Assist** mode. Conversational analysis and biological interpretation are now the default."
             )
             return True
 
         if normalized == "/fetch":
             self._set_mode("fetch")
             self._render_system_message(
-                "Switched to **fetch** mode. Marker retrieval and database lookups are now the default."
+                "Switched to **Fetch** mode. Database-only retrieval of markers, aliases, and cell-type matches are now the default."
             )
             return True
 
@@ -371,10 +372,10 @@ class ScBotApp(App):
         use_cases = Markdown(
             "**Welcome to sc-bot!**\n\n"
             "Query single-cell transcriptomics data locally.\n"
-            f"- Current mode: **{self.mode}**\n"
+            f"- Current mode: **{self.mode.capitalize()}**\n"
             "- Press `Tab` in the chat box to toggle modes\n"
-            "- Use `/assist` for conversational clarification and interpretation\n"
-            "- Use `/fetch` for marker and database retrieval\n"
+            "- Use `/assist` for biological interpretation, cell type ID from genes, and follow-up questions\n"
+            "- Use `/fetch` for database-only retrieval of markers, aliases, tissues, or cell-type matches\n"
             "- Find common markers between cells (e.g., 'common genes between T cells and B cells')\n"
             "- Identify cell types by marker (e.g., 'what expresses CD3E and CD8A?')\n"
             "- List all available cell types.\n\n"

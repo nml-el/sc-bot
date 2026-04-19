@@ -19,11 +19,12 @@ def test_input_placeholder_tracks_mode() -> None:
     app = _build_app()
 
     assert "Assist mode" in app._input_placeholder()
-    assert app._mode_status_text() == "Mode: assist"
+    assert "Mode: Assist" in app._mode_status_text()
+    assert "Model:" in app._mode_status_text()
 
     app.mode = "fetch"
     assert "Fetch mode" in app._input_placeholder()
-    assert app._mode_status_text() == "Mode: fetch"
+    assert "Mode: Fetch" in app._mode_status_text()
 
 
 def test_action_toggle_mode_switches_between_assist_and_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
