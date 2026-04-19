@@ -17,3 +17,7 @@ wheels/
 data/raw/*
 !data/raw/.gitkeep
 logs/
+
+# OpenCode
+.opencode/
+opencode.json
