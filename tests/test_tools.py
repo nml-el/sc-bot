@@ -74,6 +74,24 @@ def test_resolve_gene_aliases_cd161_defaults_to_human() -> None:
     assert "NKR-P1A" in resolved[0]["aliases"]
 
 
+def test_resolve_gene_aliases_cd25_maps_to_il2ra() -> None:
+    resolved = resolve_gene_aliases.invoke({"genes": ["CD25"]})
+    assert len(resolved) == 1
+    assert "IL2RA" in resolved[0]["canonical_symbols"]
+
+
+def test_resolve_gene_aliases_cd152_maps_to_ctla4() -> None:
+    resolved = resolve_gene_aliases.invoke({"genes": ["CD152"]})
+    assert len(resolved) == 1
+    assert "CTLA4" in resolved[0]["canonical_symbols"]
+
+
+def test_resolve_gene_aliases_cd279_maps_to_pdcd1() -> None:
+    resolved = resolve_gene_aliases.invoke({"genes": ["CD279"]})
+    assert len(resolved) == 1
+    assert "PDCD1" in resolved[0]["canonical_symbols"]
+
+
 def test_resolve_cell_type_lineage() -> None:
     markers = get_markers_by_cell_type.invoke({"cell_types": ["T cells"]})
     assert len(markers) > 0

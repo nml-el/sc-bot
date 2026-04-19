@@ -12,6 +12,7 @@ from ingest_celltypist import ingest_celltypist
 from ingest_marker_csv import ingest_marker_csv
 from ingest_panglao import ingest_panglao
 from ingest_sctype import ingest_sctype
+from sc_bot.cd_antigens import CD_ANTIGEN_MAP
 from sc_bot.db_metadata import get_app_version, set_database_version
 from utils import create_schema, load_ontology
 from sc_bot.config import DB_PATH
@@ -79,6 +80,8 @@ def setup_database(
             else:
                 print(f"Skipping marker CSV import; file not found at {marker_csv}")
 
+        _seed_cd_antigen_aliases(conn)
+
         set_database_version(cursor, get_app_version())
         conn.commit()
         print("Database setup complete.")
@@ -91,6 +94,40 @@ def setup_database(
     finally:
         if conn:
             conn.close()
+
+
+def _seed_cd_antigen_aliases(conn: sqlite3.Connection) -> int:
+    """
+    Seeds CD antigen aliases into the gene_aliases table.
+
+    Args:
+        conn (sqlite3.Connection): Open SQLite connection.
+
+    Returns:
+        int: Number of alias rows inserted.
+    """
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='gene_aliases'")
+    if cursor.fetchone() is None:
+        return 0
+
+    cursor.execute("DELETE FROM gene_aliases WHERE source = ?", ("CD-antigen-reference",))
+
+    rows: list[tuple[int, str, str, str]] = []
+    for alias, canonical_symbol in CD_ANTIGEN_MAP.items():
+        alias_clean = alias.strip().upper()
+        canonical_clean = canonical_symbol.strip().upper()
+        if not alias_clean or not canonical_clean or alias_clean == canonical_clean or canonical_clean == "NA":
+            continue
+        rows.append((1, "CD-antigen-reference", canonical_clean, alias_clean))
+
+    if rows:
+        cursor.executemany(
+            "INSERT OR IGNORE INTO gene_aliases (species_id, source, canonical_symbol, alias) VALUES (?, ?, ?, ?)",
+            rows,
+        )
+
+    return len(rows)
 
 
 def main() -> int:

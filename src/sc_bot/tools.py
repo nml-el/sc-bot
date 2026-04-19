@@ -500,7 +500,7 @@ def get_cell_types_by_marker(marker_genes: list[str], species: str = "Human") ->
     for group in gene_groups:
         group_params.extend(group)
 
-    params = tuple(flat_genes) + tuple(group_params) + (species, num_groups)
+    params = tuple(group_params) + tuple(flat_genes) + (species, num_groups)
 
     cursor.execute(query, params)
     rows = cursor.fetchall()

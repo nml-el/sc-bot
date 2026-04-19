@@ -94,6 +94,7 @@ analysis steps.
 1. Use `resolve_gene_aliases` when the user explicitly asks about aliases or alternative names.
 2. Unless the user specifies otherwise, treat alias questions as `Human`.
 3. If one input gene maps to multiple canonical symbols, make that ambiguity explicit.
+4. The alias resolution tool also recognizes CD antigen names (CD1 through CD371) and maps them to their HGNC gene symbols.
 
 ### Conceptual Annotation Framework
 {ANNOTATION_GUIDANCE}
