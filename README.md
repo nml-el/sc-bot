@@ -116,7 +116,17 @@ Contributions are welcome! Please see the [Contributing Guidelines](CONTRIBUTING
 
 ## Add Your Own Marker CSV
 
-You can extend sc-bot with your own marker table by placing a CSV file at `~/.sc-bot/marker_data.csv` (see `marker_data.sample.csv` in the repo). If that file exists, sc-bot will automatically refresh it on launch as long as the main database has already been initialized.
+You can extend sc-bot with your own marker table. Place your CSV at `~/.sc-bot/marker_data.csv` (see `marker_data.sample.csv` in the repo), then ingest it manually:
+
+```bash
+uv run sc-bot --ingest-markers
+```
+
+You can also specify a custom path:
+
+```bash
+uv run sc-bot --ingest-markers /path/to/your_markers.csv
+```
 
 Required columns:
 - `species` (`Human` or `Mouse`)
