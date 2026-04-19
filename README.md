@@ -9,14 +9,42 @@
 </pre>
 </div>
 
-**sc-bot** is a terminal-based conversational interface for single-cell biology. It helps you identify cell types from marker genes, retrieve markers for known populations, resolve common gene aliases, and work against a local multi-source marker database from the command line.
+**sc-bot** is a terminal-based conversational interface for single-cell biology. It acts as an expert computational biology assistant, powered by a local multi-source SQLite database and LLM reasoning.
 
 ![sc-bot exhausted cd8 demo](assets/demo_exhausted_cd8.gif)
 
-- Infer likely cell types from marker gene panels
-- Query markers for known cell states and tissues
-- Resolve gene aliases like `CD16` and `CD161`
-- Extend the local database with your own marker CSV
+---
+
+## Dual Workflows
+
+sc-bot is split into two distinct, sticky session modes designed for different stages of your analysis. You can switch between them instantly using the `Tab` key.
+
+### Assist Mode (`/assist`)
+**For biological interpretation and conversational analysis.**
+- **Reverse Cell Typing:** Paste a list of DEGs and ask "What cell type is this?" sc-bot combines internal biological reasoning with external Enrichr library queries to infer the identity.
+- **Follow-up Analysis:** Ask clarifying questions about lineage, cell state vs. stable identity, clustering artifacts, or technical noise.
+- **Contextual Guidance:** Get advice on tissue-specific markers or handling ambiguous sub-clustering.
+
+### Fetch Mode (`/fetch`)
+**For structured, database-only retrieval.**
+- **Marker Retrieval:** Query markers for known populations (e.g., "endothelial cells in lung"). Results are strictly curated to the **top 8 Primary Canonical Markers** ranked by multi-source consensus.
+- **Alias Resolution:** Translate common gene names and CD antigens (e.g., `CD16`, `CD161`) into canonical HGNC symbols.
+- **Shared Markers:** Find overlapping marker genes between multiple cell types.
+- **Structured Output:** Results are presented in clean code blocks with one-click copy buttons, bypassing conversational fluff.
+
+---
+
+## Interactive Terminal UI
+
+sc-bot is built on Textual and features a modern, responsive CLI environment:
+
+- **Per-Section Copy Actions:** Marker lists are rendered in isolated code blocks with a `📋` button to copy just that subset directly to your clipboard.
+- **Keyboard Navigation:** 
+  - `Tab` — Toggle instantly between Assist and Fetch modes
+  - `↑` / `↓` — Cycle through your previous queries in the current session
+  - `Escape` — Clear the input box
+- **Commands:** Type `/help` at any time to see available modes, commands, and shortcuts.
+- **Theming:** Status bars and UI elements are color-coded using the Tokyo Night theme for quick mode recognition.
 
 ---
 
@@ -64,15 +92,6 @@ Launch the interactive terminal UI:
 uv run sc-bot
 ```
 
-### 6. Switch Interaction Modes
-sc-bot supports two sticky session modes:
-
-- Press `Tab` while the chat input is focused to toggle between modes
-- `/assist` for normal conversation, clarifying questions, interpretation, and follow-up discussion
-- `/fetch` for marker retrieval, gene fetching, alias lookups, and other database-style queries
-
-The default mode is `/assist`.
-
 ---
 
 ## Feature Showcase
@@ -80,13 +99,11 @@ The default mode is `/assist`.
 Explore core sc-bot workflows through short GIF walkthroughs.
 
 ### Reverse Cell Typing From a Gene List
-
 This workflow starts from a marker panel and uses enrichment-guided reasoning to infer the most likely cell identity.
 
 ![sc-bot gene list demo](assets/demo_gene_list.gif)
 
 ### Resolve Gene Aliases
-
 This workflow translates names like `CD16` and `CD161` into the internal canonical symbols used by the database.
 
 ![sc-bot alias demo](assets/demo_aliases.gif)
@@ -141,8 +158,6 @@ Your personal markers are prioritized during ranking, so user-supplied evidence 
 *   **Tissue-Aware Filtering:** Filter marker genes based on specific tissue constraints (e.g., Lungs vs. Kidneys). Queries map automatically between diverse source nomenclatures (e.g., "Lung" -> "Lungs") and canonical tissue lists.
 *   **Consensus Scoring:** Rank markers by counting their occurrence across multiple tissues (`tissue_count`) and disparate data sources (`source_count`), separating robust core primary markers from secondary context-specific ones.
 *   **Ontology Resolution:** Automatically resolve synonyms and trace lineage within the cell ontology network.
-*   **Clipboard Integration:** Built-in UI actions to copy structured marker data to the system clipboard.
-*   **Terminal UI:** Text-based interface compatible with standard terminal emulators.
 
 ---
 
