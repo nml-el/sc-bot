@@ -110,9 +110,37 @@ This workflow translates names like `CD16` and `CD161` into the internal canonic
 
 ---
 
-## Contributing & Custom Markers
+## Contributing
 
-Contributions are welcome! If you want to contribute code, propose features, or learn how to extend the local database with your own custom marker CSV, please see the [Contributing Guidelines](CONTRIBUTING.md).
+Contributions are welcome! Please see the [Contributing Guidelines](CONTRIBUTING.md) for details on how to propose features, submit pull requests, and run local development commands.
+
+## Add Your Own Marker CSV
+
+You can extend sc-bot with your own marker table by placing a CSV file at `~/.sc-bot/marker_data.csv` (see `marker_data.sample.csv` in the repo). If that file exists, sc-bot will automatically refresh it on launch as long as the main database has already been initialized.
+
+Required columns:
+- `species` (`Human` or `Mouse`)
+- `cell_type`
+- `tissue`
+- `marker_gene`
+
+Optional columns:
+- `gene_aliases` - pipe-delimited aliases like `CD161|NKR-P1A`; leave blank if none
+- `source` - source label for the row; defaults to `custom-source` when left blank
+
+Example with aliases, blank optional fields, and custom sources:
+
+```csv
+species,cell_type,tissue,marker_gene,gene_aliases,source
+Human,Natural killer cell,Blood,KLRB1,CD161|NKR-P1A,lab-flow-panel
+Human,Plasma cell,Bone marrow,SDC1,CD138,lab-flow-panel
+Human,CD8+ T cell,Blood,CD8A,,in-house-rnaseq
+Human,Epithelial cell,Lung,EPCAM,,
+Mouse,Regulatory T cell,Spleen,Foxp3,,in-house-rnaseq
+Mouse,B cell,Bone marrow,Ms4a1,CD20,
+```
+
+Your personal markers are prioritized during ranking, so user-supplied evidence is surfaced before equally supported public markers.
 
 ---
 
@@ -144,8 +172,6 @@ All data is stored locally in `~/.sc-bot/sc_markers.db` after setup.
 *   **Orchestration:** LangChain, LangGraph, and Google GenAI (Gemini).
 *   **Interface:** Textual.
 *   **Offline Data:** Local SQLite database (`~/.sc-bot/sc_markers.db`) mapped by Python scripts from PanglaoDB, CellMarker 2.0, ScType, and CellTypist.
-
-For development commands, see [Contributing Guidelines](CONTRIBUTING.md).
 
 ---
 
