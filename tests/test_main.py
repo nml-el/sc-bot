@@ -1,4 +1,5 @@
 import sqlite3
+import sys
 
 import pytest
 
@@ -57,9 +58,9 @@ def test_main_requires_google_api_key(monkeypatch, tmp_path, capsys) -> None:
     db_path = tmp_path / "sc_markers.db"
     db_path.touch()
 
+    monkeypatch.setattr(sys, "argv", ["sc-bot"])
     monkeypatch.setattr(main_module, "load_dotenv", lambda: None)
     monkeypatch.setattr(main_module, "_ensure_database_is_current", lambda: True)
-    monkeypatch.setattr(main_module, "_maybe_import_marker_csv", lambda: None)
     monkeypatch.setattr(main_module, "DB_PATH", db_path)
     monkeypatch.setattr(main_module, "create_ai_agent", lambda _mode: pytest.fail("agent should not be created"))
     monkeypatch.setattr(main_module, "ScBotApp", lambda *args, **kwargs: pytest.fail("app should not start"))
@@ -89,9 +90,9 @@ def test_main_uses_google_api_key(monkeypatch, tmp_path) -> None:
         def run(self) -> None:
             calls["ran"] = True
 
+    monkeypatch.setattr(sys, "argv", ["sc-bot"])
     monkeypatch.setattr(main_module, "load_dotenv", lambda: None)
     monkeypatch.setattr(main_module, "_ensure_database_is_current", lambda: True)
-    monkeypatch.setattr(main_module, "_maybe_import_marker_csv", lambda: None)
     monkeypatch.setattr(main_module, "DB_PATH", db_path)
     monkeypatch.setattr(main_module, "setup_session_logger", lambda _session_id: fake_logger)
     monkeypatch.setattr(
@@ -108,3 +109,15 @@ def test_main_uses_google_api_key(monkeypatch, tmp_path) -> None:
     assert calls["agents"] == {"assist": fake_assist_agent, "fetch": fake_fetch_agent}
     assert calls["logger"] is fake_logger
     assert calls["ran"] is True
+
+
+def test_main_ingest_markers_arg_calls_import_function(monkeypatch, tmp_path, capsys) -> None:
+    csv_path = tmp_path / "my_markers.csv"
+    csv_path.write_text("species,cell_type,tissue,marker_gene\nHuman,T cell,Blood,CD3D\n")
+
+    monkeypatch.setattr(sys, "argv", ["sc-bot", "--ingest-markers", str(csv_path)])
+    monkeypatch.setattr(sys, "exit", lambda code: None)
+    monkeypatch.setattr(main_module, "DB_PATH", tmp_path / "sc_markers.db")
+    monkeypatch.setattr(main_module, "_import_marker_csv", lambda path: True)
+
+    main_module.main()

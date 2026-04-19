@@ -1,3 +1,4 @@
+import argparse
 import os
 from pathlib import Path
 import sys
@@ -107,39 +108,68 @@ def _ensure_database_is_current() -> bool:
     return DB_PATH.exists()
 
 
-def _maybe_import_marker_csv() -> None:
+def _import_marker_csv(csv_path: str) -> bool:
     """
-    Refreshes the user marker CSV if it exists and the main database is available.
+    Ingests a marker CSV into the internal SQLite database.
 
     Args:
-        None
+        csv_path (str): Path to the marker CSV file.
 
     Returns:
-        None
+        bool: True if ingestion succeeded, False otherwise.
 
     Raises:
         None
     """
-    if not DB_PATH.exists() or not MARKER_CSV_PATH.exists():
-        return
+    if not DB_PATH.exists():
+        print(f"Error: Database not found at {DB_PATH}. Please run setup first.")
+        return False
 
     import sqlite3
 
     _ensure_scripts_dir_on_path()
-    from ingest_marker_csv import ingest_marker_csv
-    from utils import load_ontology
+    try:
+        from ingest_marker_csv import ingest_marker_csv
+        from utils import load_ontology
+    except ImportError as e:
+        print(f"Error: Could not import ingestion scripts: {e}")
+        return False
 
     conn = sqlite3.connect(DB_PATH)
     try:
         cursor = conn.cursor()
         lbl_to_id, id_to_lbl, choices = load_ontology(cursor, skip_db_write=True)
-        ingest_marker_csv(
-            conn, str(MARKER_CSV_PATH), lbl_to_id, id_to_lbl, choices, default_source=DEFAULT_MARKER_SOURCE
-        )
+        ingest_marker_csv(conn, csv_path, lbl_to_id, id_to_lbl, choices, default_source=DEFAULT_MARKER_SOURCE)
         conn.commit()
-        print(f"Loaded personal marker CSV from {MARKER_CSV_PATH}")
+        print(f"Successfully loaded markers from {csv_path}")
+        return True
+    except Exception as e:
+        print(f"Error ingesting marker CSV: {e}")
+        return False
     finally:
         conn.close()
+
+
+def main_ingest_markers(args: argparse.Namespace) -> int:
+    """
+    Handles the --ingest-markers CLI argument.
+
+    Args:
+        args (argparse.Namespace): Parsed command-line arguments.
+
+    Returns:
+        int: 0 on success, 1 on failure.
+    """
+    csv_path = args.ingest_markers
+    if csv_path is None:
+        csv_path = str(MARKER_CSV_PATH)
+
+    if not Path(csv_path).exists():
+        print(f"Error: Marker CSV not found at {csv_path}")
+        return 1
+
+    success = _import_marker_csv(csv_path)
+    return 0 if success else 1
 
 
 def main() -> None:
@@ -155,13 +185,25 @@ def main() -> None:
     Raises:
         None
     """
+    parser = argparse.ArgumentParser(description="sc-bot: Terminal-based single-cell biology assistant")
+    parser.add_argument(
+        "--ingest-markers",
+        nargs="?",
+        const="",
+        default=None,
+        help="Ingest a custom marker CSV into the database. "
+        "If no path is provided, defaults to ~/.sc-bot/marker_data.csv.",
+    )
+    args = parser.parse_args()
+
+    if args.ingest_markers is not None:
+        sys.exit(main_ingest_markers(args))
+
     # Load environment variables (e.g., GOOGLE_API_KEY)
     load_dotenv()
 
     if not _ensure_database_is_current():
         return
-
-    _maybe_import_marker_csv()
 
     if not os.environ.get("GOOGLE_API_KEY"):
         print("Error: GOOGLE_API_KEY not found in .env file or environment variables.")
