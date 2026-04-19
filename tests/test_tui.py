@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from sc_bot.models import AgentResponse
+from sc_bot.models import AgentResponse, MarkerSection
 from sc_bot.tui import ModeInput, ScBotApp
 
 
@@ -86,8 +86,10 @@ def test_highlight_response_terms_wraps_markers_and_assist_cell_types() -> None:
     response = AgentResponse(
         response_type="general",
         response="T cell programs often include CD3E and IL7R, while memory T cell labels can overlap.",
-        primary_markers=["CD3E"],
-        secondary_markers=["IL7R"],
+        marker_sections=[
+            MarkerSection(label="Primary Canonical Markers", genes=["CD3E"]),
+            MarkerSection(label="Secondary/Supportive Markers", genes=["IL7R"]),
+        ],
         cell_types=["T cell", "memory T cell"],
     )
 
@@ -104,8 +106,9 @@ def test_highlight_response_terms_skips_cell_types_in_fetch_mode() -> None:
     response = AgentResponse(
         response_type="markers",
         response="T cell markers include CD3E.",
-        primary_markers=["CD3E"],
-        secondary_markers=[],
+        marker_sections=[
+            MarkerSection(label="Primary Canonical Markers", genes=["CD3E"]),
+        ],
         cell_types=["T cell"],
     )
 
@@ -113,3 +116,16 @@ def test_highlight_response_terms_skips_cell_types_in_fetch_mode() -> None:
 
     assert "`CD3E`" in highlighted
     assert "`T cell`" not in highlighted
+
+
+def test_chat_message_compose_with_special_chars_in_label() -> None:
+    """Section labels with slashes or parens must not crash the button ID sanitization."""
+    import re
+
+    label = "Copy Other Myeloid/Macrophage Markers"
+    sanitized = re.sub(r"[^a-zA-Z0-9_-]", "-", label)
+    button_id = f"copy-12345-{sanitized}"
+    # Textual IDs allow only letters, numbers, underscores, hyphens
+    assert "/" not in button_id
+    assert "(" not in button_id
+    assert all(c.isalnum() or c in "_-" for c in button_id)

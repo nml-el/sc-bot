@@ -65,7 +65,8 @@ class ChatMessage(Container):
         if self.copy_actions:
             with Horizontal(classes="action-buttons"):
                 for label in self.copy_actions:
-                    yield Button(label, id=f"copy-{id(self)}-{label.replace(' ', '_')}", classes="copy-btn")
+                    sanitized_label = re.sub(r"[^a-zA-Z0-9_-]", "-", label)
+                    yield Button(label, id=f"copy-{id(self)}-{sanitized_label}", classes="copy-btn")
 
     def on_mount(self) -> None:
         if self.role == "user":
@@ -434,8 +435,25 @@ class ScBotApp(App):
             # Update master history
             self.chat_history = new_messages
 
-            # Extract the structured final response
-            raw_ai_message = new_messages[-1].content
+            # Extract the structured final response — walk backwards for the last
+            # AIMessage with actual text content.  When the LLM returns an empty
+            # content string (common with Gemini after tool-only turns), fall back
+            # to concatenating the ToolMessage outputs from this turn so the
+            # formatter still receives useful data.
+            raw_ai_message = ""
+            for msg in reversed(new_messages[initial_len:]):
+                if isinstance(msg, AIMessage) and msg.content:
+                    raw_ai_message = msg.content
+                    break
+
+            if not raw_ai_message:
+                tool_parts = [
+                    str(msg.content)
+                    for msg in new_messages[initial_len:]
+                    if isinstance(msg, ToolMessage) and msg.content
+                ]
+                raw_ai_message = "\n\n".join(tool_parts)
+
             structured_data = format_output(raw_ai_message, mode=mode)
 
             self.call_from_thread(self._render_ai_response, structured_data, thinking_widget, mode)
@@ -463,13 +481,14 @@ class ScBotApp(App):
         highlight_specs: list[tuple[str, int]] = []
         seen_keys: set[str] = set()
 
-        for gene in response_data.primary_markers + response_data.secondary_markers:
-            gene_clean = gene.strip()
-            if not gene_clean or gene_clean in seen_keys:
-                continue
+        for section in response_data.marker_sections:
+            for gene in section.genes:
+                gene_clean = gene.strip()
+                if not gene_clean or gene_clean in seen_keys:
+                    continue
 
-            seen_keys.add(gene_clean)
-            highlight_specs.append((gene_clean, 0))
+                seen_keys.add(gene_clean)
+                highlight_specs.append((gene_clean, 0))
 
         if mode == "assist":
             for cell_type in response_data.cell_types:
@@ -500,25 +519,18 @@ class ScBotApp(App):
         copy_actions = None
         copy_all_text = None
 
-        if response_data.response_type == "markers" and (
-            response_data.primary_markers or response_data.secondary_markers
-        ):
+        if response_data.response_type == "markers" and response_data.marker_sections:
             copy_actions = {}
             combined_markers = {}
 
-            if response_data.primary_markers:
-                primary_json_copy = json.dumps(response_data.primary_markers, indent=2)
-                primary_json_display = json.dumps(response_data.primary_markers)
-                copy_actions["Copy Primary"] = primary_json_copy
-                combined_markers["primary"] = response_data.primary_markers
-                content += f"\n\n**Primary Canonical Markers:**\n```python\n{primary_json_display}\n```"
-
-            if response_data.secondary_markers:
-                secondary_json_copy = json.dumps(response_data.secondary_markers, indent=2)
-                secondary_json_display = json.dumps(response_data.secondary_markers)
-                copy_actions["Copy Secondary"] = secondary_json_copy
-                combined_markers["secondary"] = response_data.secondary_markers
-                content += f"\n\n**Secondary/Supportive Markers:**\n```python\n{secondary_json_display}\n```"
+            for section in response_data.marker_sections:
+                if not section.genes:
+                    continue
+                section_json_copy = json.dumps(section.genes, indent=2)
+                section_json_display = json.dumps(section.genes)
+                copy_actions[f"Copy {section.label}"] = section_json_copy
+                combined_markers[section.label] = section.genes
+                content += f"\n\n**{section.label}:**\n```python\n{section_json_display}\n```"
 
             copy_all_text = json.dumps(combined_markers, indent=2)
 

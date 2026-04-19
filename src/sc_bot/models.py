@@ -6,6 +6,23 @@ from pydantic import BaseModel, Field
 InteractionMode = Literal["assist", "fetch"]
 
 
+class MarkerSection(BaseModel):
+    """
+    A single labeled block of marker genes for TUI rendering.
+    """
+
+    label: str = Field(
+        description=(
+            "Display label for this marker block, e.g. 'Primary Canonical Markers', "
+            "'Secondary/Supportive Markers', or 'Epithelial cell Markers'."
+        ),
+    )
+    genes: list[str] = Field(
+        default_factory=list,
+        description="Ordered marker genes for this section.",
+    )
+
+
 class AgentResponse(BaseModel):
     """
     Schema for parsing the final output of the AI agent.
@@ -19,12 +36,12 @@ class AgentResponse(BaseModel):
     response: str = Field(
         description="The final user-facing response. Keep it concise, helpful, and grounded in the tool outputs."
     )
-    primary_markers: list[str] = Field(
-        description="Primary canonical marker genes when the response is marker-centric. Empty for general responses.",
-        default_factory=list,
-    )
-    secondary_markers: list[str] = Field(
-        description="Secondary/supportive marker genes when the response is marker-centric. Empty for general responses.",
+    marker_sections: list[MarkerSection] = Field(
+        description=(
+            "Ordered marker sections for the TUI to render. "
+            "Each section has a display label and a list of genes. "
+            "Empty for general responses."
+        ),
         default_factory=list,
     )
     cell_types: list[str] = Field(
